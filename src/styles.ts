@@ -17,7 +17,6 @@ const css = `
 
   /* Layout */
   .groi .groi-wrap {
-    background: linear-gradient(180deg, #fff 0%, ${t.bgFog} 100%);
     padding: 32px 24px 48px;
   }
   .groi .groi-inner {
