@@ -283,13 +283,32 @@ const css = `
   .groi .gaai-ptbar-fill { height: 100%; border-radius: 999px; transition: width .3s ease; }
   .groi .gaai-ptbar-val { font-size: 13px; font-weight: 600; color: ${t.ink}; text-align: right; font-variant-numeric: tabular-nums; }
 
-  /* Responsive */
+  /* Responsive — tablet */
   @media (max-width: 720px) {
     .groi .groi-grid { grid-template-columns: 1fr; }
     .groi .groi-sticky { position: static; }
     .groi .roi-result-hero .value { font-size: 40px; }
     .groi .roi-pills { grid-template-columns: repeat(2, 1fr); }
     .groi .tools-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Responsive — mobile */
+  @media (max-width: 480px) {
+    .groi .card { padding: 20px !important; }
+    .groi .card { border-radius: 14px; }
+    .groi .h3 { font-size: 18px; }
+    .groi .roi-result-hero .value { font-size: 34px; }
+    .groi .roi-result-hero { padding: 18px; }
+    .groi .roi-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .groi .roi-kpi { padding: 12px 12px; }
+    .groi .roi-kpi .v { font-size: 20px; }
+    .groi .roi-billing-toggle { flex-direction: column; }
+    .groi .roi-billing-btn { font-size: 12px; padding: 9px 10px; }
+    .groi .gaai-ptbar { grid-template-columns: 80px 1fr 46px; gap: 8px; }
+    .groi .gaai-ptbar-label { font-size: 11px; }
+    .groi .gaai-ptbar-val { font-size: 12px; }
+    .groi .roi-pills { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+    .groi .groi-inner { gap: 12px; }
   }
 `
 
