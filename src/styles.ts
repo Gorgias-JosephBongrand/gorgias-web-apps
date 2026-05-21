@@ -17,7 +17,7 @@ const css = `
 
   /* Layout */
   .groi .groi-wrap {
-    padding: 32px 24px 48px;
+    padding: 0;
   }
   .groi .groi-inner {
     max-width: 1080px;
