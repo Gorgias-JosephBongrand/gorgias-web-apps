@@ -1,0 +1,17 @@
+export const tokens = {
+  ink:         '#1A1E23',
+  ink2:        '#1E242E',
+  ink3:        '#5C6370',
+  ink4:        '#A4A7AE',
+  bg:          '#FFFFFF',
+  bgCoralSoft: '#FFF9F4',
+  bgCoral:     '#FEF4F3',
+  bgFog:       '#F3F1F0',
+  line:        '#E8E3E1',
+  line2:       '#EEEEEE',
+  coral:       '#FF9780',
+  coralDeep:   '#FF7A5C',
+  coralSoft:   '#FFD2C9',
+  green:       '#1F7A5E',
+  font:        '"Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+} as const
