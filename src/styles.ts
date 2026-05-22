@@ -34,7 +34,7 @@ const css = `
   }
   .groi .groi-sticky {
     position: sticky;
-    top: 20px;
+    top: 8rem;
   }
 
   /* Card */
