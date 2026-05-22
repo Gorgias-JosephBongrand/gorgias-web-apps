@@ -11,7 +11,7 @@ export const fmt = {
 // ─── Ticket presets ─────────────────────────────────────────────────────────
 
 export const TICKET_PRESETS = [
-  { value: 500,   label: 'Small',       sub: '~500/mo' },
+  { value: 500,   label: 'Starting up',  sub: '~500/mo' },
   { value: 2000,  label: 'Growing',     sub: '~2,000/mo' },
   { value: 4000,  label: 'Scaling',     sub: '~4,000/mo' },
   { value: 10000, label: 'High volume', sub: '10,000+/mo' },
