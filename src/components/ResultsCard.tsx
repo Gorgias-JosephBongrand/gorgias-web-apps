@@ -1,16 +1,18 @@
-import { type HelpdeskRoiState } from '../hooks/useHelpdeskRoi'
+import { type RoiState } from '../hooks/useRoi'
 import { fmt } from './Primitives'
 
 interface Props {
-  st: HelpdeskRoiState
+  st: RoiState
 }
 
 export function ResultsCard({ st }: Props) {
+  const gorgiasCost = st.plan.arr + st.aiTier.arr
+
   const kpis = [
-    { value: fmt.money(st.saved / 12),          label: 'Monthly savings' },
-    { value: fmt.money2(st.gorgiasCostPerTicket), label: 'Cost per ticket' },
-    { value: `${st.pct}%`,                        label: 'Lower than today' },
-    { value: `${st.returnMult}×`,                 label: 'Return on plan cost' },
+    { value: fmt.money(st.saved / 12),            label: 'Monthly savings' },
+    { value: fmt.money2(st.gorgiasCostPerTicket),  label: 'Cost per ticket' },
+    { value: `${st.pct}%`,                          label: 'Lower than today' },
+    { value: `${st.returnMult}×`,                   label: 'Return on investment' },
   ]
 
   return (
@@ -36,7 +38,7 @@ export function ResultsCard({ st }: Props) {
       </div>
 
       <div className="roi-plan-line">
-        Gorgias <strong>{st.planName}</strong> · {fmt.money(st.planArr / 12)}/mo
+        Helpdesk <strong>{st.plan.name}</strong> + AI Agent · {fmt.money(gorgiasCost / 12)}/mo
         {st.billing === 'yearly' ? ' billed annually' : ' billed monthly'}
       </div>
     </div>

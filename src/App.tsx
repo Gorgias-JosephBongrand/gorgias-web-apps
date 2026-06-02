@@ -1,10 +1,10 @@
-import { useHelpdeskRoi } from './hooks/useHelpdeskRoi'
+import { useRoi } from './hooks/useRoi'
 import { InputCard } from './components/InputCard'
 import { ResultsCard } from './components/ResultsCard'
 import { ChartCard } from './components/ChartCard'
 
 export function App() {
-  const st = useHelpdeskRoi()
+  const st = useRoi()
 
   return (
     <div className="groi">

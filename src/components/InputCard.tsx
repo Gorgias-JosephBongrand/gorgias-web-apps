@@ -1,9 +1,9 @@
 import { tokens as t } from '../tokens'
-import { type HelpdeskRoiState } from '../hooks/useHelpdeskRoi'
+import { type RoiState } from '../hooks/useRoi'
 import { Step, Pills, Slider, Stepper, TICKET_PRESETS, fmt } from './Primitives'
 
 interface Props {
-  st: HelpdeskRoiState
+  st: RoiState
 }
 
 export function InputCard({ st }: Props) {
@@ -30,14 +30,35 @@ export function InputCard({ st }: Props) {
           marks={['$30K', '$60K', '$90K', '$120K']} />
       </Step>
 
-      <Step n="4" label="Agent efficiency gain with Gorgias"
-        valDisplay={`${Math.round(st.autoRate * 100)}%`}
-        help="Gorgias customers typically save 20–40% of agent time through macros, order views, and channel consolidation.">
-        <Slider value={st.autoRate} onChange={st.setAutoRate} min={0.05} max={0.70} step={0.05}
+      <Step n="4" label="Helpdesk efficiency gain"
+        valDisplay={`${Math.round(st.hdRate * 100)}%`}
+        help="Gorgias customers typically save 20–40% of agent time through macros, automation rules, and channel consolidation.">
+        <Slider value={st.hdRate} onChange={st.setHdRate} min={0.05} max={0.70} step={0.05}
           marks={['5%', '20%', '40%', '70%']} />
+        <div className="gaai-rate-hint">
+          <span className="gaai-rate-dot" />
+          <span style={{ fontSize: 11, color: t.ink3 }}>Typical range: 20–40%</span>
+        </div>
       </Step>
 
-      <Step n="5" label="Tools you'd replace with Gorgias"
+      <Step n="5" label="AI automation rate"
+        valDisplay={`${Math.round(st.aiRate * 100)}%`}
+        help="Gorgias AI Agent typically resolves 20–40% of tickets autonomously for ecommerce brands. Only counts tickets the AI closes without a human handoff.">
+        <Slider value={st.aiRate} onChange={st.setAiRate} min={0.05} max={0.70} step={0.05}
+          marks={['5%', '20%', '40%', '70%']} />
+        <div className="gaai-rate-hint">
+          <span className="gaai-rate-dot" />
+          <span style={{ fontSize: 11, color: t.ink3 }}>Typical range: 20–40% for ecommerce</span>
+        </div>
+      </Step>
+
+      <Step n="6" label="Avg. handle time per ticket" valDisplay={`${st.handleTime} min`}
+        help="Used to estimate agent hours freed by AI. Industry average for ecommerce support is 6–10 minutes.">
+        <Slider value={st.handleTime} onChange={st.setHandleTime} min={3} max={30} step={1}
+          marks={['3 min', '8 min', '15 min', '30 min']} />
+      </Step>
+
+      <Step n="7" label="Tools you'd replace with Gorgias"
         valDisplay={`${st.tools} tools · $${fmt.num(st.toolcost)}/mo each`}>
         <div className="tools-grid">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -53,7 +74,7 @@ export function InputCard({ st }: Props) {
         </div>
       </Step>
 
-      <Step n="6" label="Gorgias billing cycle"
+      <Step n="8" label="Billing cycle"
         valDisplay={st.billing === 'yearly' ? 'Annual' : 'Monthly'}>
         <div className="roi-billing-toggle">
           {(['monthly', 'yearly'] as const).map(b => (
@@ -68,7 +89,8 @@ export function InputCard({ st }: Props) {
           ))}
         </div>
         <div className="step-help" style={{ marginTop: 6 }}>
-          Plan cost is based on your ticket volume — <strong>{st.planName}</strong> plan at ${(st.planArr / 12).toLocaleString('en-US', { maximumFractionDigits: 0 })}/mo.
+          Helpdesk: <strong>{st.plan.name}</strong> plan at ${(st.plan.arr / 12).toLocaleString('en-US', { maximumFractionDigits: 0 })}/mo.
+          {' '}AI Agent: ${fmt.num(st.aiTier.monthlyRate)}/mo for ~{fmt.num(Math.round(st.ticketsAutoPerMonth))} interactions/mo.
         </div>
       </Step>
     </div>

@@ -3,11 +3,11 @@ import {
   Tooltip, ResponsiveContainer, Cell, ReferenceLine, Label,
 } from 'recharts'
 import { tokens as t } from '../tokens'
-import { type HelpdeskRoiState } from '../hooks/useHelpdeskRoi'
+import { type RoiState } from '../hooks/useRoi'
 import { fmt } from './Primitives'
 
 interface Props {
-  st: HelpdeskRoiState
+  st: RoiState
 }
 
 export function ChartCard({ st }: Props) {
@@ -82,14 +82,17 @@ export function ChartCard({ st }: Props) {
 
       <div className="roi-legend">
         <div><span className="sw" style={{ background: t.ink, opacity: 0.18 }} />Current stack (agents + tools)</div>
-        <div><span className="sw" style={{ background: t.coral }} />With Gorgias Helpdesk</div>
+        <div><span className="sw" style={{ background: t.coral }} />With Gorgias (Helpdesk + AI Agent)</div>
       </div>
 
       <div className="roi-callout">
         <div className="roi-callout-icon">↓</div>
         <div>
-          With Gorgias Helpdesk, you save <b>{fmt.money(st.saved)}</b> annually —
+          With Gorgias, you save <b>{fmt.money(st.saved)}</b> annually —
           that's <b>{st.pct}%</b> less than your current support ops cost.
+          {parseFloat(st.agentFteEquivalent) > 0 && (
+            <> AI automation frees ~<b>{st.agentFteEquivalent} FTE</b> worth of agent capacity per year.</>
+          )}
         </div>
       </div>
     </div>
