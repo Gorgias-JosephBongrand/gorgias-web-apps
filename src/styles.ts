@@ -62,7 +62,7 @@ const css = `
   .v2 .roi-callout b { color: ${t.ink}; font-weight: 600; }
 
   /* Layout */
-  .v2-roi-wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 40px 40px 56px; display: flex; flex-direction: column; gap: 16px; }
+  .v2-roi-wrap { width: 100%; display: flex; flex-direction: column; gap: 16px; }
   .v2-roi-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: start; }
   .v2-roi-sticky { position: sticky; top: 20px; }
 

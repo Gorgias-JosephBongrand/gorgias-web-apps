@@ -9,7 +9,7 @@ export function App() {
   const st = useRoi()
 
   return (
-    <div className="v2" style={{ background: '#FBFAF8' }}>
+    <div className="v2">
       <div className="v2-roi-wrap">
         <div className="v2-roi-grid">
           <InputCard st={st} />
