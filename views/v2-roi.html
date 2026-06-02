@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROI Calculator — Gorgias</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: transparent; min-height: 100%; font-family: "Inter Tight", -apple-system, system-ui, sans-serif; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-plugins="transform-react-jsx-source" data-filename="app">
+
+// ============ DESIGN TOKENS ============
+const V2 = {
+  ink:         '#1A1E23',
+  ink2:        '#1E242E',
+  ink3:        '#5C6370',
+  ink4:        '#A4A7AE',
+  bg:          '#FFFFFF',
+  bgCoralSoft: '#FFF9F4',
+  bgCoral:     '#FEF4F3',
+  bgFog:       '#F3F1F0',
+  line:        '#E8E3E1',
+  line2:       '#EEEEEE',
+  coral:       '#FF9780',
+  coralDeep:   '#FF7A5C',
+  coralSoft:   '#FFD2C9',
+  green:       '#1F7A5E',
+  font:        '"Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+};
+
+// ============ STYLES ============
+(function injectStyles() {
+  if (document.getElementById('roi-styles')) return;
+  const s = document.createElement('style');
+  s.id = 'roi-styles';
+  s.textContent = `
+    .roi { font-family: ${V2.font}; color: ${V2.ink}; font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    .roi *, .roi *::before, .roi *::after { box-sizing: border-box; font-family: inherit; }
+
+    .roi .h3 { font-size: 22px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; margin: 0; }
+    .roi .muted { color: ${V2.ink3}; }
+
+    /* Cards */
+    .roi .card { background: #fff; border: 1px solid ${V2.line}; border-radius: 20px; }
+
+    /* Step */
+    .roi .roi-step { display: flex; flex-direction: column; gap: 10px; }
+    .roi .roi-step .step-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .roi .roi-step .step-label { font-size: 12px; font-weight: 600; color: ${V2.ink}; letter-spacing: .02em; display: inline-flex; align-items: center; gap: 8px; }
+    .roi .roi-step .step-n { width: 18px; height: 18px; border-radius: 5px; background: ${V2.bgCoralSoft}; border: 1px solid ${V2.coralSoft}; color: ${V2.coralDeep}; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .roi .roi-step .step-val { font-size: 14px; font-weight: 600; color: ${V2.coralDeep}; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .roi .roi-step .step-help { font-size: 11.5px; color: ${V2.ink3}; line-height: 1.5; }
+
+    /* Pills */
+    .roi .roi-pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .roi .roi-pill { padding: 10px 8px; border: 1px solid ${V2.line}; background: #fff; border-radius: 10px; font-family: inherit; cursor: pointer; text-align: center; transition: background .15s, border-color .15s; }
+    .roi .roi-pill .pill-label { font-size: 12.5px; font-weight: 600; color: ${V2.ink}; letter-spacing: -.005em; }
+    .roi .roi-pill .pill-sub { font-size: 10.5px; color: ${V2.ink3}; margin-top: 2px; }
+    .roi .roi-pill:hover { border-color: ${V2.ink}; }
+    .roi .roi-pill.on { background: ${V2.ink}; border-color: ${V2.ink}; }
+    .roi .roi-pill.on .pill-label { color: #fff; }
+    .roi .roi-pill.on .pill-sub { color: rgba(255,255,255,.65); }
+
+    /* Slider */
+    .roi .roi-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 999px; outline: none; cursor: pointer; margin: 9px 0; }
+    .roi .roi-slider:focus-visible { box-shadow: 0 0 0 3px ${V2.coralSoft}; }
+    .roi .roi-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: transparent; }
+    .roi .roi-slider::-moz-range-track { height: 6px; border-radius: 999px; background: ${V2.line2}; }
+    .roi .roi-slider::-moz-range-progress { height: 6px; border-radius: 999px; background: ${V2.coral}; }
+    .roi .roi-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid ${V2.coralDeep}; box-shadow: 0 1px 3px rgba(0,0,0,.18); cursor: grab; margin-top: -7px; }
+    .roi .roi-slider::-webkit-slider-thumb:active { cursor: grabbing; }
+    .roi .roi-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid ${V2.coralDeep}; box-shadow: 0 1px 3px rgba(0,0,0,.18); cursor: grab; }
+    .roi .roi-marks { display: flex; justify-content: space-between; font-size: 10px; color: ${V2.ink4}; padding: 0 2px; }
+
+    /* Stepper */
+    .roi .roi-stepper { display: flex; align-items: center; gap: 6px; }
+    .roi .roi-stepper button { width: 36px; height: 38px; border: 1px solid ${V2.line}; background: #fff; border-radius: 8px; font-size: 16px; cursor: pointer; color: ${V2.ink}; font-family: inherit; }
+    .roi .roi-stepper button:hover { background: ${V2.bgCoralSoft}; border-color: ${V2.coralSoft}; }
+    .roi .roi-stepper input { flex: 1; height: 38px; padding: 0 10px; border: 1px solid ${V2.line}; border-radius: 8px; font-family: inherit; font-size: 13px; text-align: center; background: #fff; font-variant-numeric: tabular-nums; color: ${V2.ink}; }
+    .roi .roi-stepper input:focus { outline: 2px solid ${V2.coralSoft}; outline-offset: -1px; border-color: ${V2.coral}; }
+
+    /* Result hero */
+    .roi .roi-result-hero { background: linear-gradient(135deg, ${V2.bgCoralSoft} 0%, ${V2.coralSoft} 100%); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 8px; }
+    .roi .roi-result-hero .label { font-size: 11px; font-weight: 700; color: ${V2.coralDeep}; letter-spacing: .06em; text-transform: uppercase; }
+    .roi .roi-result-hero .value { font-size: 56px; font-weight: 500; letter-spacing: -0.035em; line-height: 1; color: ${V2.ink}; font-variant-numeric: tabular-nums; margin: 2px 0; }
+    .roi .roi-result-hero .note { font-size: 13px; color: ${V2.ink2}; }
+
+    /* KPIs */
+    .roi .roi-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .roi .roi-kpi { background: ${V2.bgCoral}; border-radius: 12px; padding: 14px 16px; border: 1px solid ${V2.line2}; }
+    .roi .roi-kpi .v { font-size: 24px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: ${V2.ink}; line-height: 1.1; }
+    .roi .roi-kpi .l { font-size: 11px; color: ${V2.ink3}; margin-top: 4px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+
+    /* Chart */
+    .roi .roi-legend { display: flex; gap: 20px; font-size: 12px; color: ${V2.ink2}; flex-wrap: wrap; }
+    .roi .roi-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+
+    /* Callout */
+    .roi .roi-callout { background: ${V2.bgCoralSoft}; border: 1px solid ${V2.coralSoft}; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: ${V2.ink2}; line-height: 1.5; }
+    .roi .roi-callout-icon { width: 30px; height: 30px; border-radius: 8px; background: ${V2.coral}; color: ${V2.ink}; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+    .roi .roi-callout b { color: ${V2.ink}; font-weight: 600; }
+
+    /* Billing toggle */
+    .roi .roi-billing-toggle { display: flex; gap: 6px; }
+    .roi .roi-billing-btn { flex: 1; padding: 10px 12px; border: 1px solid ${V2.line}; background: #fff; border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 500; color: ${V2.ink2}; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s; }
+    .roi .roi-billing-btn:hover { border-color: ${V2.ink}; color: ${V2.ink}; }
+    .roi .roi-billing-btn.on { background: ${V2.ink}; border-color: ${V2.ink}; color: #fff; }
+
+    /* Plan line */
+    .roi .roi-plan-line { font-size: 11.5px; color: ${V2.ink3}; text-align: center; padding-top: 6px; border-top: 1px solid ${V2.line}; }
+    .roi .roi-plan-line strong { color: ${V2.ink2}; }
+
+    /* Tools sub-grid */
+    .roi .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* Rate hint */
+    .roi .rate-hint { display: flex; align-items: center; gap: 6px; margin-top: -4px; }
+    .roi .rate-dot { width: 8px; height: 8px; border-radius: 50%; background: ${V2.coral}; flex-shrink: 0; }
+
+    /* Warm section bg */
+    .roi .warm-bg { background: linear-gradient(180deg, #fff 0%, ${V2.bgFog} 100%); }
+
+    /* Responsive */
+    @media (max-width: 720px) {
+      .roi .calculator-grid { grid-template-columns: 1fr !important; }
+      .roi .calculator-sticky { position: static !important; }
+      .roi .roi-result-hero .value { font-size: 40px; }
+      .roi .roi-pills { grid-template-columns: repeat(2, 1fr); }
+      .roi .tools-grid { grid-template-columns: 1fr !important; }
+    }
+    @media (max-width: 480px) {
+      .roi .card { padding: 20px !important; border-radius: 14px; }
+      .roi .h3 { font-size: 18px; }
+      .roi .roi-result-hero .value { font-size: 34px; }
+      .roi .roi-result-hero { padding: 18px; }
+      .roi .roi-kpis { gap: 8px; }
+      .roi .roi-kpi { padding: 12px; }
+      .roi .roi-kpi .v { font-size: 20px; }
+      .roi .roi-billing-toggle { flex-direction: column; }
+      .roi .roi-pills { gap: 5px; }
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
+// Silence Recharts defaultProps warnings
+(function() {
+  const orig = console.error;
+  console.error = function(...args) {
+    if (typeof args[0] === 'string' && args[0].includes('defaultProps will be removed')) return;
+    return orig.apply(console, args);
+  };
+})();
+
+// ============ FORMATTERS ============
+const fmt = {
+  money:  (n) => '$' + Math.round(n).toLocaleString('en-US'),
+  money2: (n) => '$' + (Math.round(n * 100) / 100).toFixed(2),
+  num:    (n) => Math.round(n).toLocaleString('en-US'),
+};
+
+// ============ TICKET PRESETS ============
+const TICKET_PRESETS = [
+  { value: 500,   label: 'Starting up', sub: '~500/mo' },
+  { value: 2000,  label: 'Growing',     sub: '~2,000/mo' },
+  { value: 4000,  label: 'Scaling',     sub: '~4,000/mo' },
+  { value: 10000, label: 'High volume', sub: '10,000+/mo' },
+];
+
+// ============ HELPDESK PLAN LOOKUP ============
+// Pricing verified 2026-01-28 (USD-5 price book)
+function lookupPlan(ticketsPerMonth, billing) {
+  if (billing === 'monthly') {
+    if (ticketsPerMonth <= 50)   return { name: 'Starter',    arr: 10   * 12 };
+    if (ticketsPerMonth <= 300)  return { name: 'Basic',      arr: 60   * 12 };
+    if (ticketsPerMonth <= 2000) return { name: 'Pro',        arr: 360  * 12 };
+    if (ticketsPerMonth <= 5000) return { name: 'Advanced',   arr: 900  * 12 };
+    return                                { name: 'Enterprise', arr: 1600 * 12 };
+  } else {
+    if (ticketsPerMonth <= 300)  return { name: 'Basic',      arr: 600   };
+    if (ticketsPerMonth <= 2000) return { name: 'Pro',        arr: 3600  };
+    if (ticketsPerMonth <= 5000) return { name: 'Advanced',   arr: 9000  };
+    return                                { name: 'Enterprise', arr: 16000 };
+  }
+}
+
+// ============ AI AGENT TIER LOOKUP ============
+// Annual pricing: $0.90/interaction. Monthly: $1.00/interaction.
+// Pricing verified 2026-01-28 (USD-6 price book)
+const YEARLY_TIERS = [
+  { maxPerMonth: 30,   monthlyRate: 27   },
+  { maxPerMonth: 40,   monthlyRate: 36   },
+  { maxPerMonth: 50,   monthlyRate: 45   },
+  { maxPerMonth: 60,   monthlyRate: 54   },
+  { maxPerMonth: 80,   monthlyRate: 72   },
+  { maxPerMonth: 100,  monthlyRate: 90   },
+  { maxPerMonth: 120,  monthlyRate: 108  },
+  { maxPerMonth: 150,  monthlyRate: 135  },
+  { maxPerMonth: 190,  monthlyRate: 171  },
+  { maxPerMonth: 230,  monthlyRate: 207  },
+  { maxPerMonth: 270,  monthlyRate: 243  },
+  { maxPerMonth: 310,  monthlyRate: 279  },
+  { maxPerMonth: 360,  monthlyRate: 324  },
+  { maxPerMonth: 410,  monthlyRate: 369  },
+  { maxPerMonth: 460,  monthlyRate: 414  },
+  { maxPerMonth: 530,  monthlyRate: 477  },
+  { maxPerMonth: 600,  monthlyRate: 540  },
+  { maxPerMonth: 700,  monthlyRate: 630  },
+  { maxPerMonth: 800,  monthlyRate: 720  },
+  { maxPerMonth: 900,  monthlyRate: 810  },
+  { maxPerMonth: 1000, monthlyRate: 900  },
+  { maxPerMonth: 1125, monthlyRate: 1013 },
+  { maxPerMonth: 1250, monthlyRate: 1125 },
+  { maxPerMonth: 1375, monthlyRate: 1238 },
+  { maxPerMonth: 1500, monthlyRate: 1350 },
+  { maxPerMonth: 1750, monthlyRate: 1575 },
+  { maxPerMonth: 2000, monthlyRate: 1800 },
+  { maxPerMonth: 2250, monthlyRate: 2025 },
+  { maxPerMonth: 2500, monthlyRate: 2250 },
+  { maxPerMonth: 3000, monthlyRate: 2700 },
+  { maxPerMonth: 3500, monthlyRate: 3150 },
+  { maxPerMonth: 4000, monthlyRate: 3600 },
+  { maxPerMonth: 5000, monthlyRate: 4500 },
+  { maxPerMonth: 6000, monthlyRate: 5400 },
+  { maxPerMonth: 7000, monthlyRate: 6300 },
+];
+
+function lookupAiTier(interactionsPerMonth, billing) {
+  if (billing === 'monthly') {
+    const monthlyRate = Math.ceil(interactionsPerMonth) * 1.00;
+    return { monthlyRate, arr: monthlyRate * 12, includedPerMonth: Math.ceil(interactionsPerMonth) };
+  }
+  const tier = YEARLY_TIERS.find(t => t.maxPerMonth >= interactionsPerMonth);
+  if (tier) {
+    return { monthlyRate: tier.monthlyRate, arr: tier.monthlyRate * 12, includedPerMonth: tier.maxPerMonth };
+  }
+  const monthlyRate = Math.round(interactionsPerMonth * 0.90);
+  return { monthlyRate, arr: monthlyRate * 12, includedPerMonth: Math.round(interactionsPerMonth) };
+}
+
+// ============ STATE + MATH ============
+function useRoi() {
+  const [tickets,    setTickets]    = React.useState(4000);
+  const [agents,     setAgents]     = React.useState(6);
+  const [salary,     setSalary]     = React.useState(52000);
+  const [hdRate,     setHdRate]     = React.useState(0.30);
+  const [aiRate,     setAiRate]     = React.useState(0.30);
+  const [handleTime, setHandleTime] = React.useState(8);
+  const [tools,      setTools]      = React.useState(3);
+  const [toolcost,   setToolcost]   = React.useState(200);
+  const [billing,    setBilling]    = React.useState('yearly');
+
+  // Current stack cost
+  const currentYearly = agents * salary + tools * toolcost * 12;
+
+  // With Gorgias
+  const plan = lookupPlan(tickets, billing);
+  const ticketsAutoPerMonth = tickets * aiRate;
+  const aiTier = lookupAiTier(ticketsAutoPerMonth, billing);
+
+  // Agent cost: helpdesk efficiency reduces time per ticket,
+  // AI automation removes aiRate of tickets from agent queue entirely
+  const gorgiasAgentCost = agents * salary * (1 - hdRate) * (1 - aiRate);
+
+  // Total Gorgias cost (tool costs consolidate to zero)
+  const gorgiasYearly = gorgiasAgentCost + plan.arr + aiTier.arr;
+
+  // Savings
+  const saved               = Math.max(0, currentYearly - gorgiasYearly);
+  const pct                 = currentYearly > 0 ? Math.round((saved / currentYearly) * 100) : 0;
+  const gorgiasCostPerTicket = tickets > 0 ? gorgiasYearly / (tickets * 12) : 0;
+  const gorgiasCost         = plan.arr + aiTier.arr;
+  const returnMult          = gorgiasCost > 0 ? (saved / gorgiasCost).toFixed(1) : '0';
+
+  // Agent capacity freed by AI automation
+  const agentHoursFreedYearly = ticketsAutoPerMonth * 12 * (handleTime / 60);
+  const agentFteEquivalent    = (agentHoursFreedYearly / 2000).toFixed(1);
+
+  return {
+    tickets, setTickets,
+    agents, setAgents,
+    salary, setSalary,
+    hdRate, setHdRate,
+    aiRate, setAiRate,
+    handleTime, setHandleTime,
+    tools, setTools,
+    toolcost, setToolcost,
+    billing, setBilling,
+    currentYearly, gorgiasYearly,
+    plan, aiTier,
+    saved, pct, gorgiasCostPerTicket,
+    returnMult,
+    agentHoursFreedYearly, agentFteEquivalent,
+    ticketsAutoPerMonth,
+  };
+}
+
+// ============ PRIMITIVES ============
+function Step({ n, label, valDisplay, help, children }) {
+  return (
+    <div className="roi-step">
+      <div className="step-head">
+        <span className="step-label">
+          <span className="step-n">{n}</span>{label}
+        </span>
+        {valDisplay && <span className="step-val">{valDisplay}</span>}
+      </div>
+      {children}
+      {help && <div className="step-help">{help}</div>}
+    </div>
+  );
+}
+
+function Pills({ value, onChange, options }) {
+  return (
+    <div className="roi-pills">
+      {options.map(opt => (
+        <button key={opt.value} type="button"
+          className={'roi-pill' + (opt.value === value ? ' on' : '')}
+          onClick={() => onChange(opt.value)}>
+          <div className="pill-label">{opt.label}</div>
+          <div className="pill-sub">{opt.sub}</div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Slider({ value, onChange, min, max, step, marks }) {
+  const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+  const bg = `linear-gradient(to right, ${V2.coral} 0%, ${V2.coral} ${pct}%, ${V2.line2} ${pct}%, ${V2.line2} 100%)`;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <input type="range" className="roi-slider"
+        min={min} max={max} step={step} value={value}
+        onChange={e => onChange(+e.target.value)}
+        style={{ background: bg }}
+      />
+      {marks && (
+        <div className="roi-marks">
+          {marks.map((m, i) => <span key={i}>{m}</span>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stepper({ value, onChange, step = 1, min = 0 }) {
+  return (
+    <div className="roi-stepper">
+      <button type="button" onClick={() => onChange(Math.max(min, value - step))}>−</button>
+      <input type="number" value={value} min={min} step={step}
+        onChange={e => onChange(Math.max(min, +e.target.value || 0))} />
+      <button type="button" onClick={() => onChange(value + step)}>+</button>
+    </div>
+  );
+}
+
+// ============ INPUT CARD ============
+function InputCard({ st }) {
+  return (
+    <div className="card" style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 26 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+        <h3 className="h3">Your support profile</h3>
+        <span className="muted" style={{ fontSize: 12 }}>All fields are estimates</span>
+      </div>
+
+      <Step n="1" label="Monthly ticket volume" valDisplay={`${fmt.num(st.tickets)} / mo`}
+        help="Don't know exactly? Pick the closest band — or type a custom number below.">
+        <Pills value={st.tickets} onChange={st.setTickets} options={TICKET_PRESETS} />
+        <Stepper value={st.tickets} onChange={st.setTickets} step={500} />
+      </Step>
+
+      <Step n="2" label="Agents on your support team" valDisplay={`${st.agents} agents`}>
+        <Slider value={st.agents} onChange={st.setAgents} min={1} max={30} step={1}
+          marks={['1', '10', '20', '30+']} />
+      </Step>
+
+      <Step n="3" label="Average fully-loaded agent cost" valDisplay={`$${fmt.num(st.salary)}/yr`}>
+        <Slider value={st.salary} onChange={st.setSalary} min={30000} max={120000} step={2000}
+          marks={['$30K', '$60K', '$90K', '$120K']} />
+      </Step>
+
+      <Step n="4" label="Helpdesk efficiency gain"
+        valDisplay={`${Math.round(st.hdRate * 100)}%`}
+        help="Gorgias customers typically save 20–40% of agent time through macros, automation rules, and channel consolidation.">
+        <Slider value={st.hdRate} onChange={st.setHdRate} min={0.05} max={0.70} step={0.05}
+          marks={['5%', '20%', '40%', '70%']} />
+        <div className="rate-hint">
+          <span className="rate-dot" />
+          <span style={{ fontSize: 11, color: V2.ink3 }}>Typical range: 20–40%</span>
+        </div>
+      </Step>
+
+      <Step n="5" label="AI automation rate"
+        valDisplay={`${Math.round(st.aiRate * 100)}%`}
+        help="Gorgias AI Agent typically resolves 20–40% of tickets autonomously for ecommerce brands. Only counts tickets the AI closes without a human handoff.">
+        <Slider value={st.aiRate} onChange={st.setAiRate} min={0.05} max={0.70} step={0.05}
+          marks={['5%', '20%', '40%', '70%']} />
+        <div className="rate-hint">
+          <span className="rate-dot" />
+          <span style={{ fontSize: 11, color: V2.ink3 }}>Typical range: 20–40% for ecommerce</span>
+        </div>
+      </Step>
+
+      <Step n="6" label="Avg. handle time per ticket" valDisplay={`${st.handleTime} min`}
+        help="Used to estimate agent hours freed by AI. Industry average for ecommerce support is 6–10 minutes.">
+        <Slider value={st.handleTime} onChange={st.setHandleTime} min={3} max={30} step={1}
+          marks={['3 min', '8 min', '15 min', '30 min']} />
+      </Step>
+
+      <Step n="7" label="Tools you'd replace with Gorgias"
+        valDisplay={`${st.tools} tools · $${fmt.num(st.toolcost)}/mo each`}>
+        <div className="tools-grid">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 11, color: V2.ink3, fontWeight: 500 }}>Number of tools</span>
+            <Slider value={st.tools} onChange={st.setTools} min={0} max={8} step={1}
+              marks={['0', '4', '8']} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 11, color: V2.ink3, fontWeight: 500 }}>Avg cost / tool / month</span>
+            <Slider value={st.toolcost} onChange={st.setToolcost} min={0} max={500} step={25}
+              marks={['$0', '$250', '$500']} />
+          </div>
+        </div>
+      </Step>
+
+      <Step n="8" label="Billing cycle"
+        valDisplay={st.billing === 'yearly' ? 'Annual' : 'Monthly'}>
+        <div className="roi-billing-toggle">
+          {['monthly', 'yearly'].map(b => (
+            <button key={b} type="button"
+              className={'roi-billing-btn' + (st.billing === b ? ' on' : '')}
+              onClick={() => st.setBilling(b)}>
+              {b === 'monthly' ? 'Monthly' : 'Annual'}
+            </button>
+          ))}
+        </div>
+        <div className="step-help" style={{ marginTop: 6 }}>
+          Helpdesk: <strong>{st.plan.name}</strong> plan at ${fmt.num(st.plan.arr / 12)}/mo.
+          {' '}AI Agent: ${fmt.num(st.aiTier.monthlyRate)}/mo
+          {' '}for ~{fmt.num(Math.round(st.ticketsAutoPerMonth))} interactions/mo.
+        </div>
+      </Step>
+    </div>
+  );
+}
+
+// ============ RESULTS CARD ============
+function ResultsCard({ st }) {
+  const gorgiasCost = st.plan.arr + st.aiTier.arr;
+  return (
+    <div className="card" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+        <h3 className="h3">Annual savings</h3>
+        <span className="muted" style={{ fontSize: 12 }}>vs current stack</span>
+      </div>
+
+      <div className="roi-result-hero">
+        <div className="label">You could save</div>
+        <div className="value">{fmt.money(st.saved)}</div>
+        <div className="note">per year on support operations</div>
+      </div>
+
+      <div className="roi-kpis">
+        {[
+          { value: fmt.money(st.saved / 12),            label: 'Monthly savings' },
+          { value: fmt.money2(st.gorgiasCostPerTicket), label: 'Cost per ticket' },
+          { value: `${st.pct}%`,                         label: 'Lower than today' },
+          { value: `${st.returnMult}×`,                  label: 'Return on investment' },
+        ].map((k, i) => (
+          <div key={i} className="roi-kpi">
+            <div className="v">{k.value}</div>
+            <div className="l">{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="roi-plan-line">
+        Helpdesk <strong>{st.plan.name}</strong> + AI Agent · ${fmt.num(gorgiasCost / 12)}/mo
+        {st.billing === 'yearly' ? ' billed annually' : ' billed monthly'}
+      </div>
+    </div>
+  );
+}
+
+// ============ CHART CARD ============
+function ChartCard({ st }) {
+  const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Label } = window.Recharts || {};
+
+  if (!BarChart) {
+    return (
+      <div className="card" style={{ padding: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: V2.ink3, fontSize: 13 }}>
+        Loading chart…
+      </div>
+    );
+  }
+
+  const data = [
+    { name: 'Current stack', value: st.currentYearly },
+    { name: 'With Gorgias',  value: st.gorgiasYearly  },
+  ];
+  const saved = Math.max(0, st.currentYearly - st.gorgiasYearly);
+  const tickFmt = (v) => '$' + Math.round(v / 1000) + 'K';
+
+  return (
+    <div className="card" style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div>
+        <h3 className="h3" style={{ fontSize: 20 }}>Annual support cost — current stack vs Gorgias</h3>
+        <span className="muted" style={{ fontSize: 13 }}>Projected over 12 months</span>
+      </div>
+
+      <div style={{ width: '100%', height: 320 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 36, right: 28, left: 4, bottom: 8 }} barCategoryGap="32%">
+            <CartesianGrid stroke={V2.line2} vertical={false} />
+            <XAxis
+              dataKey="name"
+              axisLine={{ stroke: V2.line }}
+              tickLine={false}
+              tick={{ fill: V2.ink2, fontSize: 12, fontFamily: V2.font, fontWeight: 500 }}
+              tickMargin={10}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: V2.ink4, fontSize: 10, fontFamily: V2.font }}
+              tickFormatter={tickFmt}
+              width={56}
+            />
+            <Tooltip
+              cursor={{ fill: V2.bgCoralSoft, opacity: 0.6 }}
+              contentStyle={{ background: V2.ink, color: '#fff', border: 'none', borderRadius: 10, fontSize: 12, padding: '8px 12px', boxShadow: '0 6px 20px rgba(0,0,0,.18)' }}
+              labelStyle={{ color: '#fff', fontWeight: 600, marginBottom: 4 }}
+              itemStyle={{ color: '#fff', padding: 0 }}
+              formatter={(v) => [fmt.money(v), 'Annual cost']}
+            />
+            <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={140}>
+              <Cell fill="#CBC6C2" />
+              <Cell fill={V2.coral} />
+            </Bar>
+            {saved > 0 && (
+              <ReferenceLine y={st.gorgiasYearly} stroke={V2.coralDeep} strokeDasharray="4 3" strokeWidth={1.5} ifOverflow="extendDomain">
+                <Label
+                  value={`Saved: ${fmt.money(saved)}`}
+                  position="insideTopRight"
+                  fill={V2.coralDeep}
+                  fontSize={12}
+                  fontWeight={700}
+                  offset={8}
+                />
+              </ReferenceLine>
+            )}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="roi-legend">
+        <div><span className="sw" style={{ background: V2.ink, opacity: 0.18 }}></span>Current stack (agents + tools)</div>
+        <div><span className="sw" style={{ background: V2.coral }}></span>With Gorgias (Helpdesk + AI Agent)</div>
+      </div>
+
+      <div className="roi-callout">
+        <div className="roi-callout-icon">↓</div>
+        <div>
+          With Gorgias, you save <b>{fmt.money(st.saved)}</b> annually —
+          that's <b>{st.pct}%</b> less than your current support ops cost.
+          {parseFloat(st.agentFteEquivalent) > 0 && (
+            <> AI automation frees ~<b>{st.agentFteEquivalent} FTE</b> worth of agent capacity per year.</>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ APP ============
+function App() {
+  const st = useRoi();
+  return (
+    <div className="roi warm-bg" style={{ padding: '32px 24px 48px' }}>
+      <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="calculator-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 16, alignItems: 'start' }}>
+          <InputCard st={st} />
+          <div className="calculator-sticky" style={{ position: 'sticky', top: '8rem' }}>
+            <ResultsCard st={st} />
+          </div>
+        </div>
+        <ChartCard st={st} />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
