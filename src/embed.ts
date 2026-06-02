@@ -1,7 +1,6 @@
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
-import { AiAgentApp } from './ai-agent/App'
 import { injectStyles } from './styles'
 
 function mountAll(selector: string, Component: React.ComponentType, flag: string) {
@@ -14,8 +13,7 @@ function mountAll(selector: string, Component: React.ComponentType, flag: string
 
 function mount() {
   injectStyles()
-  mountAll('[data-el="helpdesk-roi"]', App,        'groiMounted')
-  mountAll('[data-el="ai-agent-roi"]', AiAgentApp, 'gaaiMounted')
+  mountAll('[data-el="helpdesk-roi"]', App, 'groiMounted')
 }
 
 if (document.readyState === 'loading') {
