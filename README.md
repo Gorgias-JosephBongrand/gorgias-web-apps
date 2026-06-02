@@ -1,24 +1,17 @@
 # Gorgias Website Apps
 
-Self-contained React widgets built as IIFE bundles, embedded into Webflow pages via a single `<script>` tag.
+Self-contained React widget built as an IIFE bundle, embedded into Webflow pages via a single `<script>` tag.
 
-## Calculators
+## ROI Calculator
 
-| Calculator | Embed target | Live URL |
-|---|---|---|
-| Helpdesk ROI | `data-el="helpdesk-roi"` | TBD |
-| AI Agent ROI | `data-el="ai-agent-roi"` | TBD |
-
-## How it works
-
-Each calculator mounts into a `<div>` on the host page:
+Mounts the consolidated Gorgias ROI calculator (Helpdesk + AI Agent + Shopping Assistant revenue) into any page that includes the embed target div.
 
 ```html
 <div data-el="helpdesk-roi"></div>
-<script src="https://your-deploy.vercel.app/embed.js" defer></script>
+<script src="https://gorgias-web-apps.vercel.app/embed.js" defer></script>
 ```
 
-`embed.js` is a self-contained IIFE — React, Recharts, and all styles are bundled in. No external dependencies required on the host page.
+`embed.js` is self-contained — React, Recharts, and all styles are bundled in. No external dependencies required on the host page.
 
 ## Development
 
@@ -27,15 +20,11 @@ npm install
 npm run dev       # dev server at http://localhost:5173
 ```
 
-Both calculators render on the dev page (`index.html`) for side-by-side review.
-
 ## Build
 
 ```bash
 npm run build     # outputs dist/embed.js
 ```
-
-`dist/embed.js` is the artifact to deploy. Upload it to Vercel (or any static host) and reference it in Webflow.
 
 ## Deploy (Vercel)
 
@@ -45,30 +34,38 @@ npm run build     # outputs dist/embed.js
 | Output directory | `dist` |
 | Framework | Other |
 
+Merging to `main` triggers a Vercel deploy automatically.
+
 ## Pricing model
 
-Calculators use verified Gorgias pricing (USD-5 / USD-6 price books, last verified 2026-01-28).
+Verified Gorgias pricing (USD-5 / USD-6 price books, last verified 2026-01-28).
 
-**Helpdesk** — tiered monthly subscription based on ticket volume. Annual billing gives a 16.7% discount (2 months free).
+**Helpdesk** — tiered monthly subscription based on ticket volume. Annual billing: ~17% off monthly rate.
 
 **AI Agent** — subscription tier based on automated interactions/month.
-- Annual contract: **$0.90/interaction**
-- Monthly contract: **$1.00/interaction**
-- Overage (above tier cap): $1.50/interaction
-- Only charged when AI closes a ticket autonomously — handovers to agents are free.
+- Annual: **$0.90/interaction** (Pro/Basic) · **$0.85** (Advanced) · **$0.75** (Enterprise)
+- Monthly: **$1.00/interaction**
+- Only charged when AI closes a ticket autonomously.
+
+**Shopping Assistant** — included in AI Agent at no extra cost. Revenue modeled via uplift on pre-sales chat sessions.
 
 ## Project structure
 
 ```
 src/
-  embed.ts                  # entry point — mounts both calculators
-  App.tsx                   # Helpdesk ROI app
-  ai-agent/
-    App.tsx                 # AI Agent ROI app
-    hooks/useAiAgentRoi.ts
-    components/
-  components/               # shared primitives (Slider, Pills, Stepper…)
-  hooks/useHelpdeskRoi.ts
-  styles.ts                 # CSS injected at runtime, scoped to .groi
-  tokens.ts                 # Gorgias V2 design tokens
+  embed.ts                   # entry point — mounts to data-el="helpdesk-roi"
+  App.tsx                    # CombinedRoiFocusedPage layout
+  hooks/useRoi.ts            # useCombinedRoi — all state + math
+  components/
+    InputCard.tsx            # inputs (tickets, agents, AI Agent, Shopping Assistant)
+    ResultsCard.tsx          # scenario toggle + hero value + KPIs
+    Breakdown.tsx            # "Where the money goes" cost stack
+    ChartCard.tsx            # 3-scenario stacked bar chart
+    Methodology.tsx          # collapsible methodology & sources
+    Primitives.tsx           # Step, Pills, Slider, Stepper, Kpis, Callout
+  styles.ts                  # CSS injected at runtime, scoped to .v2
+  tokens.ts                  # Gorgias design tokens
+
+views/
+  v2-roi-focused.html        # standalone preview (same design, CDN React)
 ```

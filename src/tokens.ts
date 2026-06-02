@@ -7,6 +7,7 @@ export const tokens = {
   bgCoralSoft: '#FFF9F4',
   bgCoral:     '#FEF4F3',
   bgFog:       '#F3F1F0',
+  bgNeutral:   '#FBFAF8',
   line:        '#E8E3E1',
   line2:       '#EEEEEE',
   coral:       '#FF9780',
