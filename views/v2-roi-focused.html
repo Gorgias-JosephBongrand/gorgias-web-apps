@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Support ROI Calculator (Focused) — Gorgias</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #FBFAF8; min-height: 100%; font-family: "Inter Tight", -apple-system, system-ui, sans-serif; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-plugins="transform-react-jsx-source" data-filename="app">
+
+// ─── v2-shared.jsx ──────────────────────────────────────────────────────────
+
+const V2 = {
+  ink: '#1A1E23',
+  ink2: '#1E242E',
+  ink3: '#5C6370',
+  ink4: '#A4A7AE',
+  bg: '#FFFFFF',
+  bgCoralSoft: '#FFF9F4',
+  bgCoral: '#FEF4F3',
+  bgFog: '#F3F1F0',
+  bgNeutral: '#F3F1F0',
+  line: '#E8E3E1',
+  line2: '#EEEEEE',
+  coral: '#FF9780',
+  coralDeep: '#FF7A5C',
+  coralSoft: '#FFD2C9',
+  green: '#1F7A5E',
+  font: '"Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+};
+
+(function() {
+  if (document.getElementById('v2-styles')) return;
+  const s = document.createElement('style');
+  s.id = 'v2-styles';
+  s.textContent = `
+    .v2 { font-family: ${V2.font}; color: ${V2.ink}; font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; background: #fff; }
+    .v2 *, .v2 *::before, .v2 *::after { box-sizing: border-box; font-family: inherit; }
+    .v2 .h1 { font-size: 64px; font-weight: 500; letter-spacing: -0.025em; line-height: 1.05; margin: 0; color: ${V2.ink}; }
+    .v2 .h2 { font-size: 52px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.2; margin: 0; }
+    .v2 .h3 { font-size: 28px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; margin: 0; }
+    .v2 .h4 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.5; margin: 0; }
+    .v2 .lede { font-size: 18px; color: ${V2.ink2}; line-height: 1.5; margin: 0; }
+    .v2 .muted { color: ${V2.ink3}; }
+    .v2 .eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: ${V2.ink2}; background: ${V2.bgCoralSoft}; border: 1px solid ${V2.coralSoft}; padding: 5px 12px; border-radius: 999px; line-height: 1.5; white-space: nowrap; }
+    .v2 .eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: ${V2.coral}; }
+    .v2 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-weight: 400; font-size: 14px; border: 1px solid transparent; cursor: pointer; font-family: inherit; transition: background .15s ease, color .15s ease; white-space: nowrap; line-height: 1; text-decoration: none; }
+    .v2 .btn.primary { background: ${V2.coral}; color: ${V2.ink}; border-color: ${V2.ink}; }
+    .v2 .btn.primary:hover { background: ${V2.coralDeep}; }
+    .v2 .btn.dark { background: ${V2.ink}; color: #fff; border-color: ${V2.ink}; }
+    .v2 .btn.ghost { background: #fff; color: ${V2.ink}; border-color: ${V2.ink}; }
+    .v2 .card { background: #fff; border: 1px solid ${V2.line}; border-radius: 20px; }
+    .v2 section { background: #fff; }
+    .v2 section.warm { background: linear-gradient(180deg, #fff 0%, ${V2.bgFog} 100%); border-top: 1px solid ${V2.line}; }
+    .v2 .wrap { max-width: 1280px; margin: 0 auto; padding: 80px; }
+  `;
+  document.head.appendChild(s);
+})();
+
+// ─── v2-roi.jsx ─────────────────────────────────────────────────────────────
+
+(function() {
+  const orig = console.error;
+  console.error = function(...args) {
+    if (typeof args[0] === 'string' && args[0].includes('defaultProps will be removed')) return;
+    return orig.apply(console, args);
+  };
+})();
+
+(function() {
+  if (document.getElementById('v2-roi-styles')) return;
+  const s = document.createElement('style');
+  s.id = 'v2-roi-styles';
+  s.textContent = `
+    .v2 .roi-step { display: flex; flex-direction: column; gap: 10px; }
+    .v2 .roi-step .step-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .v2 .roi-step .step-label { font-size: 12px; font-weight: 600; color: ${V2.ink}; letter-spacing: .02em; display: inline-flex; align-items: center; gap: 8px; }
+    .v2 .roi-step .step-n { width: 18px; height: 18px; border-radius: 5px; background: ${V2.bgCoralSoft}; border: 1px solid ${V2.coralSoft}; color: ${V2.coralDeep}; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+    .v2 .roi-step .step-val { font-size: 14px; font-weight: 600; color: ${V2.coralDeep}; font-variant-numeric: tabular-nums; }
+    .v2 .roi-step .step-help { font-size: 11.5px; color: ${V2.ink3}; line-height: 1.5; }
+    .v2 .roi-pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .v2 .roi-pill { padding: 10px 8px; border: 1px solid ${V2.line}; background: #fff; border-radius: 10px; font-family: inherit; cursor: pointer; text-align: center; transition: background .15s, border-color .15s; }
+    .v2 .roi-pill .pill-label { font-size: 12.5px; font-weight: 600; color: ${V2.ink}; letter-spacing: -.005em; }
+    .v2 .roi-pill .pill-sub { font-size: 10.5px; color: ${V2.ink3}; margin-top: 2px; }
+    .v2 .roi-pill:hover { border-color: ${V2.ink}; }
+    .v2 .roi-pill.on { background: ${V2.ink}; border-color: ${V2.ink}; }
+    .v2 .roi-pill.on .pill-label { color: #fff; }
+    .v2 .roi-pill.on .pill-sub { color: rgba(255,255,255,.65); }
+    .v2 .roi-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 999px; outline: none; cursor: pointer; margin: 9px 0; background: ${V2.line2}; }
+    .v2 .roi-slider:focus-visible { box-shadow: 0 0 0 3px ${V2.coralSoft}; }
+    .v2 .roi-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: transparent; }
+    .v2 .roi-slider::-moz-range-track { height: 6px; border-radius: 999px; background: ${V2.line2}; }
+    .v2 .roi-slider::-moz-range-progress { height: 6px; border-radius: 999px; background: ${V2.coral}; }
+    .v2 .roi-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid ${V2.coralDeep}; box-shadow: 0 1px 3px rgba(0,0,0,.18); cursor: grab; margin-top: -7px; }
+    .v2 .roi-slider::-webkit-slider-thumb:active { cursor: grabbing; }
+    .v2 .roi-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid ${V2.coralDeep}; box-shadow: 0 1px 3px rgba(0,0,0,.18); cursor: grab; }
+    .v2 .roi-marks { display: flex; justify-content: space-between; font-size: 10px; color: ${V2.ink4}; padding: 0 2px; }
+    .v2 .roi-stepper { display: flex; align-items: center; gap: 6px; }
+    .v2 .roi-stepper button { width: 36px; height: 38px; border: 1px solid ${V2.line}; background: #fff; border-radius: 8px; font-size: 16px; cursor: pointer; color: ${V2.ink}; font-family: inherit; }
+    .v2 .roi-stepper button:hover { background: ${V2.bgCoralSoft}; border-color: ${V2.coralSoft}; }
+    .v2 .roi-stepper input { flex: 1; height: 38px; padding: 0 10px; border: 1px solid ${V2.line}; border-radius: 8px; font-family: inherit; font-size: 13px; text-align: center; background: #fff; font-variant-numeric: tabular-nums; color: ${V2.ink}; }
+    .v2 .roi-stepper input:focus { outline: 2px solid ${V2.coralSoft}; outline-offset: -1px; border-color: ${V2.coral}; }
+    .v2 .roi-result-hero { background: linear-gradient(135deg, ${V2.bgCoralSoft} 0%, ${V2.coralSoft} 100%); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 8px; }
+    .v2 .roi-result-hero .label { font-size: 11px; font-weight: 700; color: ${V2.coralDeep}; letter-spacing: .06em; text-transform: uppercase; }
+    .v2 .roi-result-hero .value { font-size: 56px; font-weight: 500; letter-spacing: -0.035em; line-height: 1; color: ${V2.ink}; font-variant-numeric: tabular-nums; margin: 2px 0; }
+    .v2 .roi-result-hero .note { font-size: 13px; color: ${V2.ink2}; }
+    .v2 .roi-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .v2 .roi-kpi { background: ${V2.bgCoral}; border-radius: 12px; padding: 14px 16px; border: 1px solid ${V2.line2}; }
+    .v2 .roi-kpi .v { font-size: 24px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: ${V2.ink}; line-height: 1.1; }
+    .v2 .roi-kpi .l { font-size: 11px; color: ${V2.ink3}; margin-top: 4px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+    .v2 .roi-chart { width: 100%; height: 320px; display: block; }
+    .v2 .roi-legend { display: flex; gap: 20px; font-size: 12px; color: ${V2.ink2}; flex-wrap: wrap; }
+    .v2 .roi-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+    .v2 .roi-callout { background: ${V2.bgCoralSoft}; border: 1px solid ${V2.coralSoft}; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: ${V2.ink2}; line-height: 1.5; }
+    .v2 .roi-callout-icon { width: 30px; height: 30px; border-radius: 8px; background: ${V2.coral}; color: ${V2.ink}; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+    .v2 .roi-callout strong, .v2 .roi-callout b { color: ${V2.ink}; font-weight: 600; }
+    .v2 .roi-demo-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: ${V2.ink2}; }
+    .v2 .roi-demo-list li { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; }
+    .v2 .roi-demo-list li::before { content: ''; width: 16px; height: 16px; border-radius: 4px; background: ${V2.bgCoralSoft}; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M10 3L4.5 8.5L2 6' stroke='%231F7A5E' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E"); background-size: 12px; background-repeat: no-repeat; background-position: center; }
+
+    /* Premium overrides for combined calculator */
+    .v2 .roi-kpis { gap: 1px; background: ${V2.line2}; border: 1px solid ${V2.line2}; border-radius: 14px; overflow: hidden; }
+    .v2 .roi-kpi { background: #fff; border: none; border-radius: 0; padding: 16px 18px; }
+    .v2 .roi-kpi .v { font-size: 22px; font-weight: 500; color: ${V2.ink}; }
+    .v2 .roi-kpi .l { font-size: 10px; color: ${V2.ink3}; }
+    .v2 .roi-callout { background: #FBFAF8; border: 1px solid ${V2.line}; padding: 14px 18px; gap: 14px; }
+    .v2 .roi-callout-icon { background: #fff; color: ${V2.coralDeep}; border: 1px solid ${V2.line}; box-shadow: none; font-weight: 500; }
+    .v2 .roi-step .step-n { background: #fff; border: 1px solid ${V2.line}; color: ${V2.ink3}; font-weight: 500; }
+    .v2 .roi-step .step-val { color: ${V2.ink}; font-weight: 500; }
+    .v2 .roi-pill { background: #fff; border-color: ${V2.line}; }
+    .v2 .roi-pill.on { background: ${V2.ink}; border-color: ${V2.ink}; }
+  `;
+  document.head.appendChild(s);
+})();
+
+const RoiFmt = {
+  money:  (n) => '$' + Math.round(n).toLocaleString('en-US'),
+  money2: (n) => '$' + (Math.round(n * 100) / 100).toFixed(2),
+  num:    (n) => Math.round(n).toLocaleString('en-US'),
+};
+
+function RoiStep({ n, label, valDisplay, help, children }) {
+  return (
+    <div className="roi-step">
+      <div className="step-head">
+        <span className="step-label"><span className="step-n">{n}</span>{label}</span>
+        {valDisplay && <span className="step-val">{valDisplay}</span>}
+      </div>
+      {children}
+      {help && <div className="step-help">{help}</div>}
+    </div>
+  );
+}
+
+function RoiPills({ value, onChange, options }) {
+  return (
+    <div className="roi-pills">
+      {options.map(opt => (
+        <button key={opt.value} type="button"
+          className={'roi-pill' + (opt.value === value ? ' on' : '')}
+          onClick={() => onChange(opt.value)}>
+          <div className="pill-label">{opt.label}</div>
+          <div className="pill-sub">{opt.sub}</div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function RoiSlider({ value, onChange, min, max, step, marks }) {
+  const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+  const bg = `linear-gradient(to right, ${V2.coral} 0%, ${V2.coral} ${pct}%, ${V2.line2} ${pct}%, ${V2.line2} 100%)`;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <input type="range" className="roi-slider"
+        min={min} max={max} step={step} value={value}
+        onChange={e => onChange(+e.target.value)} style={{ background: bg }} />
+      {marks && (
+        <div className="roi-marks">
+          {marks.map((m, i) => <span key={i}>{m}</span>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RoiStepper({ value, onChange, step = 1, min = 0 }) {
+  return (
+    <div className="roi-stepper">
+      <button type="button" onClick={() => onChange(Math.max(min, value - step))}>−</button>
+      <input type="number" value={value} min={min} step={step}
+        onChange={e => onChange(Math.max(min, +e.target.value || 0))} />
+      <button type="button" onClick={() => onChange(value + step)}>+</button>
+    </div>
+  );
+}
+
+function RoiKpis({ items }) {
+  return (
+    <div className="roi-kpis">
+      {items.map((k, i) => (
+        <div key={i} className="roi-kpi">
+          <div className="v">{k.value}</div>
+          <div className="l">{k.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RoiCallout({ icon = '↓', children }) {
+  return (
+    <div className="roi-callout">
+      <div className="roi-callout-icon">{icon}</div>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+const ROI_TICKET_PRESETS = [
+  { value: 500,   label: 'Getting started', sub: '~500/mo' },
+  { value: 2000,  label: 'Growing',         sub: '~2,000/mo' },
+  { value: 4000,  label: 'Scaling',         sub: '~4,000/mo' },
+  { value: 10000, label: 'High volume',     sub: '10,000+/mo' },
+];
+
+// ─── v2-roi-combined.jsx ────────────────────────────────────────────────────
+
+const COMBINED_PLAN_OPTIONS = [
+  { id: 'basic',      name: 'Basic',      upTo: 300,      monthlyAnnual: 50,   monthlyMonthly: 60,   airate: 0.90 },
+  { id: 'pro',        name: 'Pro',        upTo: 2000,     monthlyAnnual: 300,  monthlyMonthly: 360,  airate: 0.90 },
+  { id: 'advanced',   name: 'Advanced',   upTo: 5000,     monthlyAnnual: 750,  monthlyMonthly: 900,  airate: 0.85 },
+  { id: 'enterprise', name: 'Enterprise', upTo: Infinity, monthlyAnnual: 1500, monthlyMonthly: 1800, custom: true, airate: 0.75 },
+];
+
+function recommendPlan(monthlyTickets) {
+  return COMBINED_PLAN_OPTIONS.find(p => monthlyTickets <= p.upTo) || COMBINED_PLAN_OPTIONS[COMBINED_PLAN_OPTIONS.length - 1];
+}
+
+const COMBINED_LABOR_LIFT = 0.25;
+
+function useCombinedRoi(defaults = {}) {
+  const [scenario,   setScenario]   = React.useState('ai');
+  const [revenueOn,  setRevenueOn]  = React.useState(defaults.revenueOn ?? true);
+  const [billing,    setBilling]    = React.useState('annual');
+  const [tickets,    setTickets]    = React.useState(defaults.tickets ?? 2000);
+  const [agents,     setAgents]     = React.useState(defaults.agents ?? 6);
+  const [salary,     setSalary]     = React.useState(defaults.salary ?? 52000);
+  const [toolspend,  setToolspend]  = React.useState(defaults.toolspend ?? 600);
+  const [rate,       setRate]       = React.useState(defaults.rate ?? 45);
+  const [traffic,    setTraffic]    = React.useState(defaults.traffic ?? 100000);
+  const [presales,   setPresales]   = React.useState(defaults.presales ?? 20);
+  const [chatRate,   setChatRate]   = React.useState(defaults.chatRate ?? 1.5);
+  const [baseCR,     setBaseCR]     = React.useState(defaults.baseCR ?? 2.5);
+  const [aov,        setAov]        = React.useState(defaults.aov ?? 90);
+  const [saUplift,   setSaUplift]   = React.useState(defaults.saUplift ?? 82);
+  const [attrib,     setAttrib]     = React.useState(defaults.attrib ?? 70);
+
+  const aiOn = scenario === 'ai';
+  const revenueActive = aiOn && revenueOn;
+  const saOn = revenueActive;
+  const setAiOn = (v) => setScenario(v ? 'ai' : 'helpdesk');
+  const setRevenue = (v) => { setRevenueOn(v); if (v) setScenario('ai'); };
+
+  const laborCurrent = agents * salary;
+  const toolsCurrent = toolspend * 12;
+  const baseYearly = laborCurrent + toolsCurrent;
+  const ticketsYr = tickets * 12;
+  const costPerTicketToday = ticketsYr > 0 ? baseYearly / ticketsYr : 0;
+
+  const plan = recommendPlan(tickets);
+  const planMonthly = billing === 'annual' ? plan.monthlyAnnual : plan.monthlyMonthly;
+  const planAnnual = planMonthly * 12;
+  const planSavingsVsMonthly = (plan.monthlyMonthly - plan.monthlyAnnual) * 12;
+  const airate = plan.airate;
+
+  const laborWithHelpdesk = laborCurrent * (1 - COMBINED_LABOR_LIFT);
+  const hdYearly = laborWithHelpdesk + planAnnual;
+  const hdSaved = Math.max(0, baseYearly - hdYearly);
+
+  const autoResolved = tickets * (rate / 100);
+  const humanHandled = tickets - autoResolved;
+  const humanFraction = tickets > 0 ? humanHandled / tickets : 0;
+  const laborWithAi = laborWithHelpdesk * humanFraction;
+  const aiSpend = autoResolved * airate * 12;
+  const hdAiYearly = laborWithAi + planAnnual + aiSpend;
+  const hdAiSaved = Math.max(0, baseYearly - hdAiYearly);
+  const aiUplift = Math.max(0, hdYearly - hdAiYearly);
+
+  const saConversationsPerMo = traffic * (presales / 100) * (chatRate / 100);
+  const saBaselineOrdersMo = saConversationsPerMo * (baseCR / 100);
+  const saIncrementalOrdersMo = saBaselineOrdersMo * (saUplift / 100);
+  const saAttributedOrdersMo = saIncrementalOrdersMo * (attrib / 100);
+  const saRevenueAnnual = saAttributedOrdersMo * aov * 12;
+  const saRevenueMonthly = saRevenueAnnual / 12;
+  const totalWithRevenue = hdAiSaved + saRevenueAnnual;
+
+  const savedNow = saOn ? totalWithRevenue : aiOn ? hdAiSaved : hdSaved;
+  const yearlyNow = aiOn ? hdAiYearly : hdYearly;
+  const pct = baseYearly > 0 ? Math.round((Math.max(0, aiOn ? hdAiSaved : hdSaved) / baseYearly) * 100) : 0;
+  const gorgiasSpendNow = aiOn ? (planAnnual + aiSpend) : planAnnual;
+  const returnMult = gorgiasSpendNow > 0 ? ((saOn ? totalWithRevenue : savedNow) / gorgiasSpendNow).toFixed(1) : '0';
+  const laborNow = aiOn ? laborWithAi : laborWithHelpdesk;
+
+  return {
+    scenario, setScenario, aiOn, setAiOn, saOn, revenueOn, revenueActive, setRevenue,
+    billing, setBilling, tickets, setTickets, agents, setAgents, salary, setSalary,
+    toolspend, setToolspend, rate, setRate, airate,
+    traffic, setTraffic, presales, setPresales, chatRate, setChatRate,
+    baseCR, setBaseCR, aov, setAov, saUplift, setSaUplift, attrib, setAttrib,
+    plan, planAnnual, planMonthly, planSavingsVsMonthly,
+    baseYearly, laborCurrent, toolsCurrent, costPerTicketToday,
+    hdYearly, hdSaved, laborWithHelpdesk,
+    autoResolved, humanHandled, aiSpend, laborWithAi,
+    hdAiYearly, hdAiSaved, aiUplift,
+    saConversationsPerMo, saBaselineOrdersMo, saIncrementalOrdersMo,
+    saAttributedOrdersMo, saRevenueAnnual, saRevenueMonthly, totalWithRevenue,
+    savedNow, yearlyNow, pct, returnMult, gorgiasSpendNow, laborNow,
+  };
+}
+
+function CombinedRoiBillingToggle({ billing, setBilling, st, compact = false }) {
+  const btn = (val, label, sub) => (
+    <button type="button" onClick={() => setBilling(val)} style={{
+      flex: 1, padding: compact ? '8px 10px' : '9px 14px', borderRadius: 999, border: 'none',
+      background: billing === val ? V2.ink : 'transparent',
+      color: billing === val ? '#fff' : V2.ink3,
+      fontFamily: 'inherit', fontSize: 12.5, fontWeight: billing === val ? 500 : 400,
+      cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      gap: 8, transition: 'background .15s, color .15s', whiteSpace: 'nowrap',
+    }}>
+      <span>{label}</span>
+      {sub && (
+        <span style={{
+          fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 999,
+          background: billing === val ? V2.coral : V2.bgCoralSoft,
+          color: billing === val ? V2.ink : V2.coralDeep, letterSpacing: '.02em',
+        }}>{sub}</span>
+      )}
+    </button>
+  );
+  const savingsLabel = st && st.planSavingsVsMonthly > 0 ? `−$${RoiFmt.num(st.planSavingsVsMonthly)}/yr` : 'Save';
+  return (
+    <div style={{ display: 'inline-flex', padding: 3, background: '#fff', border: `1px solid ${V2.line}`, borderRadius: 999, gap: 0 }}>
+      {btn('monthly', 'Monthly')}
+      {btn('annual', 'Annual', savingsLabel)}
+    </div>
+  );
+}
+
+function CombinedRoiScenarioToggle({ scenario, setScenario }) {
+  const opts = [
+    { id: 'helpdesk', label: 'Helpdesk only',       dot: V2.ink4,  caption: 'Baseline' },
+    { id: 'ai',       label: 'Helpdesk + AI Agent', dot: V2.coral, caption: 'Cost + revenue' },
+  ];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 600, color: V2.ink3, letterSpacing: '.08em', textTransform: 'uppercase' }}>
+        Scenario
+      </div>
+      <div role="tablist" style={{ display: 'flex', flexDirection: 'column', background: '#FBFAF8', border: `1px solid ${V2.line}`, borderRadius: 12, padding: 4, gap: 2 }}>
+        {opts.map(o => {
+          const active = scenario === o.id;
+          return (
+            <button key={o.id} type="button" role="tab" aria-selected={active}
+              onClick={() => setScenario(o.id)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '11px 14px', borderRadius: 8,
+                background: active ? V2.ink : 'transparent', color: active ? '#fff' : V2.ink2,
+                border: 'none', fontFamily: 'inherit', fontSize: 13, fontWeight: active ? 500 : 400,
+                cursor: 'pointer', transition: 'background .15s, color .15s', textAlign: 'left',
+              }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: o.dot, display: 'inline-block', boxShadow: active ? '0 0 0 2px rgba(255,255,255,.18)' : 'none' }}></span>
+                {o.label}
+              </span>
+              <span style={{ fontSize: 10.5, fontWeight: 500, color: active ? 'rgba(255,255,255,.55)' : V2.ink4, letterSpacing: '.02em', textTransform: 'uppercase' }}>{o.caption}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CombinedRoiMissingOut({ st }) {
+  if (st.revenueActive) return null;
+  const Card = ({ accent, eyebrow, eyebrowColor, body, cta, onCta }) => (
+    <div style={{ background: '#FBFAF8', border: `1px solid ${V2.line}`, borderRadius: 12, padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: eyebrowColor, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, display: 'inline-block' }}></span>
+          {eyebrow}
+        </div>
+        <div style={{ fontSize: 14.5, lineHeight: 1.5, color: V2.ink2 }}>{body}</div>
+      </div>
+      <button type="button" onClick={onCta} style={{ background: 'transparent', color: V2.ink, border: `1px solid ${V2.ink}`, padding: '8px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        {cta} <span style={{ fontSize: 14 }}>→</span>
+      </button>
+    </div>
+  );
+  if (!st.aiOn) {
+    return (
+      <Card accent={V2.coral} eyebrow="What you're missing" eyebrowColor={V2.coralDeep}
+        body={<span>Adding AI Agent saves another <strong style={{ color: V2.ink, fontWeight: 600 }}>{RoiFmt.money(st.aiUplift)}/yr</strong>. It automates <strong style={{ color: V2.ink, fontWeight: 600 }}>{RoiFmt.num(st.autoResolved)} interactions/mo</strong> at your volume.</span>}
+        cta="Turn on AI Agent" onCta={() => st.setScenario('ai')} />
+    );
+  }
+  return (
+    <Card accent={V2.green} eyebrow="Included with AI Agent · Shopping Assistant" eyebrowColor={V2.green}
+      body={<span>Shopping Assistant is built into AI Agent at no extra cost. On your traffic it projects <strong style={{ color: V2.ink, fontWeight: 600 }}>+{RoiFmt.money(st.saRevenueAnnual)}/yr</strong> in added revenue — turning support into a revenue channel.</span>}
+      cta="Model the revenue side" onCta={() => st.setRevenue(true)} />
+  );
+}
+
+function CombinedRoiInputs({ st, compact = false }) {
+  return (
+    <div className="card" style={{ padding: compact ? 22 : 24, display: 'flex', flexDirection: 'column', gap: compact ? 22 : 26 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+        <h3 className="h3" style={{ fontSize: compact ? 18 : 22 }}>Your support profile</h3>
+        <span className="muted" style={{ fontSize: 12 }}>All fields are estimates</span>
+      </div>
+
+      <RoiStep n="1" label="Monthly ticket volume" valDisplay={`${RoiFmt.num(st.tickets)} / mo`}
+        help="Sets your recommended Gorgias plan. Pick the closest band, or type a custom number below.">
+        <RoiPills value={st.tickets} onChange={st.setTickets} options={ROI_TICKET_PRESETS} />
+        <RoiStepper value={st.tickets} onChange={st.setTickets} step={500} />
+      </RoiStep>
+
+      <RoiStep n="2" label="Agents on your support team" valDisplay={`${st.agents} agents`}
+        help="Drives labor cost in the breakdown below.">
+        <RoiSlider value={st.agents} onChange={st.setAgents} min={1} max={30} step={1} marks={['1', '10', '20', '30+']} />
+      </RoiStep>
+
+      <RoiStep n="3" label="Fully-loaded cost per agent" valDisplay={`$${RoiFmt.num(st.salary)}/yr`}
+        help="Salary + benefits + overhead. Industry avg: $52K for an ecommerce support agent.">
+        <RoiSlider value={st.salary} onChange={st.setSalary} min={30000} max={120000} step={2000} marks={['$30K', '$60K', '$90K', '$120K']} />
+      </RoiStep>
+
+      <RoiStep n="4" label="Current tooling spend" valDisplay={`$${RoiFmt.num(st.toolspend)}/mo`}
+        help="Total monthly spend on tools you'd replace with Gorgias: Zendesk, separate chat apps, macros tools, etc.">
+        <RoiSlider value={st.toolspend} onChange={st.setToolspend} min={0} max={4000} step={50} marks={['$0', '$1K', '$2K', '$4K+']} />
+      </RoiStep>
+
+      {/* AI Agent section */}
+      <div style={{ padding: compact ? '20px 18px 18px' : '24px 22px 22px', margin: compact ? '4px -4px 0' : '4px -6px 0', borderRadius: 14, background: '#FBFAF8', border: `1px solid ${V2.line}`, display: 'flex', flexDirection: 'column', gap: compact ? 18 : 22, transition: 'opacity .2s', opacity: st.aiOn ? 1 : 0.55 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: V2.coral, display: 'inline-block' }}></span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: V2.ink3 }}>AI Agent settings</span>
+            </div>
+            <span style={{ fontSize: 12, color: V2.ink3 }}>Cost-side automation · automates support interactions</span>
+          </div>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: V2.ink2, cursor: 'pointer', position: 'relative' }}>
+            <span style={{ position: 'relative', width: 34, height: 20, borderRadius: 999, background: st.aiOn ? V2.ink : V2.line, transition: 'background .15s' }}>
+              <span style={{ position: 'absolute', top: 2, left: st.aiOn ? 16 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left .15s', boxShadow: '0 1px 2px rgba(0,0,0,.2)' }}></span>
+            </span>
+            <input type="checkbox" checked={st.aiOn} onChange={(e) => st.setAiOn(e.target.checked)} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }} />
+            {st.aiOn ? 'Included' : 'Not included'}
+          </label>
+        </div>
+
+        <RoiStep n="5" label="Automation rate" valDisplay={`${st.rate}%`}
+          help="% of support interactions AI Agent fully automates. Most customers land between 30–60%.">
+          <RoiSlider value={st.rate} onChange={st.setRate} min={10} max={80} step={5} marks={['10%', 'Avg 30%', 'Top 60%+', '80%']} />
+        </RoiStep>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, fontSize: 12, color: V2.ink3, paddingTop: 2 }}>
+          <span>Price per automated interaction</span>
+          <span style={{ color: V2.ink2, fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+            ${st.airate.toFixed(2)} · set by your {st.plan.name} tier
+          </span>
+        </div>
+      </div>
+
+      {/* Shopping Assistant section */}
+      <div style={{ padding: compact ? '20px 18px 18px' : '24px 22px 22px', margin: compact ? '4px -4px 0' : '4px -6px 0', borderRadius: 14, background: '#FBFAF8', border: `1px solid ${V2.line}`, display: 'flex', flexDirection: 'column', gap: compact ? 18 : 22, transition: 'opacity .2s', opacity: st.saOn ? 1 : 0.5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: V2.green, display: 'inline-block' }}></span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: V2.ink3 }}>Shopping Assistant · storefront inputs</span>
+            </div>
+            <span style={{ fontSize: 12, color: V2.ink3 }}>Revenue side · included with AI Agent, no extra cost</span>
+          </div>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: V2.ink2, cursor: 'pointer', position: 'relative' }}>
+            <span style={{ position: 'relative', width: 34, height: 20, borderRadius: 999, background: st.saOn ? V2.ink : V2.line, transition: 'background .15s' }}>
+              <span style={{ position: 'absolute', top: 2, left: st.saOn ? 16 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left .15s', boxShadow: '0 1px 2px rgba(0,0,0,.2)' }}></span>
+            </span>
+            <input type="checkbox" checked={st.saOn} onChange={(e) => st.setRevenue(e.target.checked)} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }} />
+            {st.saOn ? 'Modeling' : 'Off'}
+          </label>
+        </div>
+
+        {!st.saOn && (
+          <div style={{ fontSize: 12, color: V2.ink3, lineHeight: 1.5 }}>
+            Shopping Assistant is built into AI Agent — switching this on enables AI Agent (if it isn't already) and reveals the storefront inputs: traffic, chat-engagement rate, baseline conversion, AOV, and the Shopping Assistant uplift.
+          </div>
+        )}
+
+        {st.saOn && (
+          <React.Fragment>
+            <RoiStep n="6" label="Monthly site traffic" valDisplay={`${RoiFmt.num(st.traffic)} visits / mo`}>
+              <RoiSlider value={st.traffic} onChange={st.setTraffic} min={10000} max={2000000} step={10000} marks={['10K', '500K', '1M', '2M+']} />
+              <RoiStepper value={st.traffic} onChange={st.setTraffic} step={10000} />
+            </RoiStep>
+
+            <RoiStep n="7" label="Pre-sales inquiry rate" valDisplay={`${st.presales}% of visitors`}
+              help="Share of visitors who have a question Shopping Assistant could answer (sizing, fit, comparison, inventory).">
+              <RoiSlider value={st.presales} onChange={st.setPresales} min={5} max={40} step={1} marks={['5%', '20%', '40%']} />
+            </RoiStep>
+
+            <RoiStep n="8" label="Chat contact rate" valDisplay={`${st.chatRate}% of pre-sales visitors engage`}
+              help="Of those with a pre-sales question, what % actually open chat. Industry: 0.5–5%.">
+              <RoiSlider value={st.chatRate} onChange={st.setChatRate} min={0.5} max={5} step={0.1} marks={['0.5%', '1.5%', '3%', '5%']} />
+            </RoiStep>
+
+            <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1fr 1fr', gap: 14 }}>
+              <RoiStep n="9" label="Baseline conversion rate" valDisplay={`${st.baseCR.toFixed(1)}%`}
+                help="Store-wide CVR without Shopping Assistant. Most ecommerce: 1.5–4%.">
+                <RoiSlider value={st.baseCR} onChange={st.setBaseCR} min={1} max={8} step={0.1} marks={['1%', '4%', '8%']} />
+              </RoiStep>
+              <RoiStep n="10" label="Average order value" valDisplay={`$${RoiFmt.num(st.aov)}`}>
+                <RoiSlider value={st.aov} onChange={st.setAov} min={30} max={500} step={5} marks={['$30', '$200', '$500']} />
+              </RoiStep>
+            </div>
+
+            <RoiStep n="11" label="Shopping Assistant conversion uplift" valDisplay={`+${st.saUplift}% CVR when it participates`}
+              help="Lift in CVR for sessions where Shopping Assistant participates vs the store baseline. Internal avg: 82%.">
+              <RoiSlider value={st.saUplift} onChange={st.setSaUplift} min={20} max={200} step={1} marks={['20%', 'Avg 82%', '120%', '200%']} />
+            </RoiStep>
+
+            <RoiStep n="12" label="Attribution confidence" valDisplay={`${st.attrib}% of lift counted as incremental`}
+              help="GMV-influenced is not the same as incremental. 70% is a defensible default. Use 40% for CFO-grade modeling.">
+              <RoiPills value={st.attrib} onChange={st.setAttrib} options={[
+                { value: 40,  label: 'Conservative', sub: '40%' },
+                { value: 70,  label: 'Default',      sub: '70%' },
+                { value: 100, label: 'Aggressive',   sub: '100%' },
+              ]} />
+            </RoiStep>
+          </React.Fragment>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CombinedRoiResults({ st, compact = false }) {
+  const isRevenueMode = st.saOn;
+  const accent = isRevenueMode ? V2.green : V2.coralDeep;
+
+  const Hero = ({ eyebrow, value, valueNote, secondary }) => (
+    <div style={{ background: '#FBFAF8', border: `1px solid ${V2.line}`, borderRadius: 14, padding: compact ? '22px 22px 20px' : '26px 26px 22px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, color: V2.ink3, letterSpacing: '.08em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent }}></span>
+        {eyebrow}
+      </div>
+      <div style={{ fontSize: compact ? 44 : 54, fontWeight: 500, letterSpacing: '-0.035em', lineHeight: 1.02, color: V2.ink, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{value}</div>
+      {valueNote && <div style={{ fontSize: 13, color: V2.ink2, marginTop: 4 }}>{valueNote}</div>}
+      {secondary && (
+        <div style={{ marginTop: 10, paddingTop: 12, borderTop: `1px solid ${V2.line2}`, fontSize: 12, color: V2.ink3, display: 'flex', flexWrap: 'wrap', gap: 14 }}>
+          {secondary}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="card" style={{ padding: compact ? 22 : 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <CombinedRoiScenarioToggle scenario={st.scenario} setScenario={st.setScenario} />
+
+      {st.aiOn && (
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '11px 14px', borderRadius: 10, border: `1px solid ${st.revenueOn ? V2.green : V2.line}`, background: st.revenueOn ? 'rgba(31,138,91,.05)' : '#FBFAF8', cursor: 'pointer', transition: 'border-color .15s, background .15s' }}>
+          <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontSize: 13, fontWeight: 500, color: V2.ink }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: V2.green, display: 'inline-block' }}></span>
+              Add Shopping Assistant revenue
+            </span>
+            <span style={{ fontSize: 11, color: V2.ink3, paddingLeft: 16 }}>Included in AI Agent — no extra cost</span>
+          </span>
+          <span style={{ position: 'relative', width: 34, height: 20, borderRadius: 999, flexShrink: 0, background: st.revenueOn ? V2.green : V2.line, transition: 'background .15s' }}>
+            <span style={{ position: 'absolute', top: 2, left: st.revenueOn ? 16 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left .15s', boxShadow: '0 1px 2px rgba(0,0,0,.2)' }}></span>
+          </span>
+          <input type="checkbox" checked={st.revenueOn} onChange={(e) => st.setRevenue(e.target.checked)} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }} />
+        </label>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+          <h3 className="h3" style={{ fontSize: compact ? 18 : 22 }}>
+            {isRevenueMode ? 'Total annual value' : 'Annual savings'}
+          </h3>
+          <span className="muted" style={{ fontSize: 11.5 }}>
+            {isRevenueMode ? 'cost saved + Shopping Assistant revenue' : 'vs current stack'}
+          </span>
+        </div>
+
+        {isRevenueMode ? (
+          <Hero
+            eyebrow="Total annual value"
+            value={RoiFmt.money(st.totalWithRevenue)}
+            valueNote={`${st.plan.name} plan + AI Agent · Shopping Assistant included`}
+            secondary={
+              <React.Fragment>
+                <span><span style={{ color: V2.coralDeep, fontWeight: 600 }}>{RoiFmt.money(st.hdAiSaved)}</span> support cost saved</span>
+                <span style={{ color: V2.ink4 }}>·</span>
+                <span><span style={{ color: V2.green, fontWeight: 600 }}>+{RoiFmt.money(st.saRevenueAnnual)}</span> Shopping Assistant revenue</span>
+              </React.Fragment>
+            }
+          />
+        ) : (
+          <Hero
+            eyebrow={st.aiOn ? 'You could save' : 'Helpdesk-only savings'}
+            value={RoiFmt.money(st.savedNow)}
+            valueNote={st.aiOn ? `per year on the ${st.plan.name} plan + AI Agent` : `per year on the ${st.plan.name} plan`}
+          />
+        )}
+
+        {isRevenueMode ? (
+          <RoiKpis items={[
+            { value: RoiFmt.money(st.saRevenueMonthly),          label: 'Added revenue / mo' },
+            { value: RoiFmt.num(st.saAttributedOrdersMo),         label: 'Incremental orders / mo' },
+            { value: RoiFmt.money(st.hdAiSaved),                  label: 'Support cost saved / yr' },
+            { value: st.returnMult + '×',                          label: 'Return on Gorgias spend' },
+          ]} />
+        ) : (
+          <RoiKpis items={[
+            { value: RoiFmt.money(st.savedNow / 12),              label: 'Monthly savings' },
+            { value: st.aiOn ? RoiFmt.num(st.autoResolved) : RoiFmt.money(st.gorgiasSpendNow), label: st.aiOn ? 'Automated interactions / mo' : 'Gorgias plan / yr' },
+            { value: st.pct + '%',                                  label: 'Lower than today' },
+            { value: st.returnMult + '×',                          label: 'Return on Gorgias spend' },
+          ]} />
+        )}
+      </div>
+
+      <CombinedRoiMissingOut st={st} />
+    </div>
+  );
+}
+
+function CombinedRoiBreakdown({ st, compact = false }) {
+  const row = (label, value, opts = {}) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 0', borderBottom: opts.last ? 'none' : `1px solid ${V2.line2}`, ...(opts.style || {}) }}>
+      <span style={{ fontSize: 12.5, color: opts.muted ? V2.ink3 : V2.ink2, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        {opts.dot && <span style={{ width: 8, height: 8, borderRadius: 2, background: opts.dot, display: 'inline-block', flexShrink: 0 }}></span>}
+        {label}
+      </span>
+      <span style={{ fontSize: opts.big ? 16 : 13, fontWeight: opts.big ? 600 : 500, color: opts.accent || V2.ink, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+    </div>
+  );
+
+  return (
+    <div className="card" style={{ padding: compact ? 22 : 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <h3 className="h3" style={{ fontSize: compact ? 18 : 22 }}>Where the money goes</h3>
+          <span className="muted" style={{ fontSize: 13 }}>Annual cost stack, line by line, today vs with Gorgias.</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 10.5, fontWeight: 600, color: V2.ink3, letterSpacing: '.06em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: V2.coral }}></span>
+            Recommended · {st.plan.name}{st.plan.custom ? ' (custom)' : ''} · ${RoiFmt.num(st.planMonthly)}/mo
+          </span>
+          <CombinedRoiBillingToggle billing={st.billing} setBilling={st.setBilling} st={st} compact={compact} />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1fr 1fr', gap: compact ? 14 : 18 }}>
+        <div style={{ background: '#FBFAF8', borderRadius: 14, padding: '20px 22px', border: `1px solid ${V2.line}` }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: V2.ink3, marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: V2.ink4 }}></span>
+            Today
+          </div>
+          {row(`Agent labor (${st.agents} × $${RoiFmt.num(st.salary)})`, RoiFmt.money(st.laborCurrent), { dot: '#CBC6C2' })}
+          {row(`Tool stack ($${RoiFmt.num(st.toolspend)}/mo)`, RoiFmt.money(st.toolsCurrent), { dot: '#9FA5AE' })}
+          {row('Total', RoiFmt.money(st.baseYearly), { big: true, last: true, style: { paddingTop: 12 } })}
+          <div style={{ fontSize: 11.5, color: V2.ink3, marginTop: 10 }}>
+            = <strong style={{ color: V2.ink2, fontWeight: 500 }}>{RoiFmt.money2(st.costPerTicketToday)}</strong> per ticket
+          </div>
+        </div>
+
+        <div style={{ background: '#FBFAF8', borderRadius: 14, padding: '20px 22px', border: `1px solid ${V2.line}` }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: V2.ink3, marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: st.aiOn ? V2.coral : V2.ink4 }}></span>
+            With Gorgias {st.aiOn ? '+ AI Agent' : '(Helpdesk only)'}
+          </div>
+          {row(
+            `Agent labor (${Math.round(COMBINED_LABOR_LIFT * 100)}% productivity lift${st.aiOn ? `, ${Math.round((1 - st.humanHandled / st.tickets) * 100)}% deflected` : ''})`,
+            RoiFmt.money(st.laborNow), { dot: '#CBC6C2' }
+          )}
+          {row(
+            <span>Gorgias <strong style={{ color: V2.ink, fontWeight: 500 }}>{st.plan.name}</strong> plan{st.plan.custom ? ' (est.)' : ''} · {st.billing === 'annual' ? 'billed yearly' : 'billed monthly'}</span>,
+            RoiFmt.money(st.planAnnual), { dot: V2.ink }
+          )}
+          {st.aiOn && row(
+            `AI Agent (${RoiFmt.num(st.autoResolved)} automated interactions/mo × $${st.airate.toFixed(2)})`,
+            RoiFmt.money(st.aiSpend), { dot: V2.coral }
+          )}
+          {row('Tools replaced by Gorgias', 'Removed', { muted: true, accent: V2.green })}
+          {st.saOn && (
+            <div style={{ marginTop: 10, padding: '10px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontSize: 12.5, color: V2.ink2, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: V2.green }}></span>
+                  Revenue from Shopping Assistant
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: V2.green, fontVariantNumeric: 'tabular-nums' }}>+{RoiFmt.money(st.saRevenueAnnual)}</span>
+              </div>
+              <span style={{ fontSize: 11, color: V2.ink3 }}>
+                {RoiFmt.num(st.saAttributedOrdersMo)} incremental orders/mo × ${st.aov} AOV × 12 · attribution {st.attrib}% · included in AI Agent, no extra cost
+              </span>
+            </div>
+          )}
+          {row(
+            st.saOn ? 'Net annual value' : 'Total',
+            st.saOn ? RoiFmt.money(st.totalWithRevenue) : RoiFmt.money(st.yearlyNow),
+            { big: true, last: true, accent: V2.ink, style: { paddingTop: 12 } }
+          )}
+          <div style={{ fontSize: 11.5, color: V2.ink3, marginTop: 10, lineHeight: 1.4 }}>
+            {st.saOn
+              ? <span><span style={{ color: V2.coralDeep, fontWeight: 500 }}>{RoiFmt.money(st.hdAiSaved)}</span> support cost saved <span style={{ color: V2.ink4 }}>·</span> <span style={{ color: V2.green, fontWeight: 500 }}>+{RoiFmt.money(st.saRevenueAnnual)}</span> Shopping Assistant revenue</span>
+              : <span>{RoiFmt.money(st.savedNow)} less than today ({st.pct}% reduction)</span>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CombinedRoiChart({ st }) {
+  const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Label, Customized } = window.Recharts || {};
+  const laborFill = '#CBC6C2';
+  const toolsFill = '#9FA5AE';
+  const planFill  = V2.ink;
+  const dimAi = !st.aiOn;
+
+  const data = [
+    { name: 'Today',               labor: st.laborCurrent,      tools: st.toolsCurrent, plan: 0,            ai: 0 },
+    { name: 'With Helpdesk',       labor: st.laborWithHelpdesk, tools: 0,               plan: st.planAnnual, ai: 0 },
+    { name: 'Helpdesk + AI Agent', labor: st.laborWithAi,       tools: 0,               plan: st.planAnnual, ai: st.aiSpend },
+  ].map(d => ({ ...d, total: d.labor + d.tools + d.plan + d.ai }));
+
+  const fmtMoney = v => RoiFmt.money(v);
+  const refY     = st.aiOn ? st.hdAiYearly : st.hdYearly;
+  const refSaved = st.aiOn ? st.hdAiSaved  : st.hdSaved;
+
+  const ChartTotals = (cp) => {
+    const xMap = cp.xAxisMap, yMap = cp.yAxisMap;
+    if (!xMap || !yMap) return null;
+    const xAxis = xMap[Object.keys(xMap)[0]], yAxis = yMap[Object.keys(yMap)[0]];
+    if (!xAxis || !yAxis || !xAxis.scale || !yAxis.scale) return null;
+    const xScale = xAxis.scale, yScale = yAxis.scale;
+    const bw = xScale.bandwidth ? xScale.bandwidth() : 0;
+    return (
+      <g>
+        {data.map((d, i) => (
+          <text key={i} x={xScale(d.name) + bw / 2} y={yScale(d.total) - 12}
+            textAnchor="middle" fill={V2.ink} fontSize={13} fontWeight={600} fontFamily={V2.font}>
+            {fmtMoney(d.total)}
+          </text>
+        ))}
+      </g>
+    );
+  };
+
+  return (
+    <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <h3 className="h3" style={{ fontSize: 22 }}>Annual support cost across scenarios</h3>
+        <span className="muted" style={{ fontSize: 13 }}>
+          Each bar stacks the line items behind that total.
+          {st.revenueActive && ' Shopping Assistant adds revenue on top — shown below, not as a cost.'}
+        </span>
+      </div>
+
+      {!BarChart ? (
+        <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: V2.ink3, fontSize: 13 }}>Loading chart…</div>
+      ) : (
+        <div style={{ width: '100%', height: 380 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 48, right: 24, left: 8, bottom: 8 }} barCategoryGap="24%">
+              <CartesianGrid stroke={V2.line2} vertical={false} />
+              <XAxis dataKey="name" axisLine={{ stroke: V2.line }} tickLine={false}
+                tick={{ fill: V2.ink2, fontSize: 12, fontFamily: V2.font, fontWeight: 500 }} tickMargin={10} interval={0} />
+              <YAxis hide domain={[0, max => max * 1.16]} />
+              <Tooltip
+                cursor={{ fill: V2.bgCoralSoft, opacity: 0.6 }}
+                contentStyle={{ background: V2.ink, color: '#fff', border: 'none', borderRadius: 10, fontSize: 12, padding: '8px 12px', boxShadow: '0 6px 20px rgba(0,0,0,.18)' }}
+                labelStyle={{ color: '#fff', fontWeight: 600, marginBottom: 4 }}
+                itemStyle={{ color: '#fff', padding: 0 }}
+                formatter={(v, name) => [fmtMoney(v), { labor: 'Agent labor', tools: 'Tool stack', plan: 'Gorgias plan', ai: 'AI Agent' }[name] || name]}
+              />
+              <Bar dataKey="labor" stackId="a" maxBarSize={96}>
+                {data.map((_, i) => <Cell key={i} fill={laborFill} fillOpacity={dimAi && i === 2 ? 0.34 : 1} />)}
+              </Bar>
+              <Bar dataKey="tools" stackId="a" maxBarSize={96}>
+                {data.map((_, i) => <Cell key={i} fill={toolsFill} />)}
+              </Bar>
+              <Bar dataKey="plan" stackId="a" maxBarSize={96}>
+                {data.map((_, i) => <Cell key={i} fill={planFill} fillOpacity={dimAi && i === 2 ? 0.34 : 1} />)}
+              </Bar>
+              <Bar dataKey="ai" stackId="a" radius={[8, 8, 0, 0]} maxBarSize={96}>
+                {data.map((_, i) => (
+                  <Cell key={i} fill={V2.coral} fillOpacity={dimAi && i === 2 ? 0.3 : 1}
+                    stroke={dimAi && i === 2 ? V2.coral : 'none'} strokeDasharray={dimAi && i === 2 ? '4 3' : '0'} />
+                ))}
+              </Bar>
+              {Customized && <Customized component={ChartTotals} />}
+              {refSaved > 0 && (
+                <ReferenceLine y={refY} stroke={V2.coralDeep} strokeDasharray="4 3" strokeWidth={1.5} ifOverflow="extendDomain">
+                  <Label value={`Saved vs today: ${fmtMoney(refSaved)}`} position="insideTopLeft" fill={V2.coralDeep} fontSize={12} fontWeight={700} offset={8} />
+                </ReferenceLine>
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <div className="roi-legend">
+        <div><span className="sw" style={{ background: laborFill }}></span>Agent labor</div>
+        <div><span className="sw" style={{ background: toolsFill }}></span>Current tool stack</div>
+        <div><span className="sw" style={{ background: planFill }}></span>Gorgias plan ({st.plan.name})</div>
+        <div><span className="sw" style={{ background: V2.coral, opacity: dimAi ? 0.34 : 1 }}></span>AI Agent{dimAi && ' (off)'}</div>
+        <div><span className="sw" style={{ background: 'transparent', border: `1px dashed ${V2.coralDeep}` }}></span>Savings vs today</div>
+      </div>
+
+      <RoiCallout icon={st.revenueActive ? '↑' : st.aiOn ? '⚡' : '↓'}>
+        {st.revenueActive ? (
+          <span>
+            On the <b>{st.plan.name}</b> plan you cut support spend by <b>{RoiFmt.money(st.hdAiSaved)}/yr</b>.
+            Shopping Assistant — included in AI Agent at no extra cost — adds{' '}
+            <b style={{ color: V2.green }}>+{RoiFmt.money(st.saRevenueAnnual)}/yr</b> in revenue
+            ({RoiFmt.num(st.saAttributedOrdersMo)} incremental orders/mo at {st.attrib}% attribution),
+            for <b style={{ color: V2.green }}>{RoiFmt.money(st.totalWithRevenue)}</b> total annual value.
+          </span>
+        ) : st.aiOn ? (
+          <span>
+            On the <b>{st.plan.name}</b> plan, you spend <b>{RoiFmt.money(st.gorgiasSpendNow)}/yr</b> with Gorgias
+            (plan + AI usage) but cut your total support spend by <b>{RoiFmt.money(st.hdAiSaved)}</b>.
+            That's a <b>{st.returnMult}×</b> return on Gorgias spend.
+          </span>
+        ) : (
+          <span>
+            On the <b>{st.plan.name}</b> plan ({RoiFmt.money(st.planAnnual)}/yr), Helpdesk alone saves <b>{RoiFmt.money(st.hdSaved)}</b>.
+            Add AI Agent and total savings rise to <b>{RoiFmt.money(st.hdAiSaved)}</b>.
+          </span>
+        )}
+      </RoiCallout>
+    </div>
+  );
+}
+
+const COMBINED_SOURCES = [
+  { label: 'Fully-loaded agent cost', figure: '$30K–$120K/yr range · $52K default', source: 'U.S. Bureau of Labor Statistics, Customer Service Representatives (43-4051), median wages + ~30% benefits load', note: 'Adjustable per user input. Default reflects North-American ecommerce support roles.' },
+  { label: 'Helpdesk productivity lift', figure: '25% labor capacity reclaimed', source: 'Gorgias internal benchmark. Ticket-handle-time delta measured across 2,000+ Shopify brands (12-month cohort)', note: 'Time savings from unified inbox + macros + integrations. Modeled as labor cost × 0.75.' },
+  { label: 'Automation rate', figure: '30–60% typical range · 45% default', source: 'Gorgias AI Agent deployment data, median across active customers (2025)', note: 'Brand averages range from 15% (custom-heavy categories) to 70% (high-volume DTC). Adjust the slider.' },
+  { label: 'Price per automated interaction', figure: '$0.75–$0.90 per automated interaction', source: 'Gorgias 2026 list price, tier-based volume discount', note: 'Basic/Pro $0.90 · Advanced $0.85 · Enterprise $0.75. Set automatically by your recommended plan tier.' },
+  { label: 'Gorgias plan prices', figure: '$50–$1,500/mo · ticket-volume-based', source: 'gorgias.com/pricing (list price, 2026)', note: 'Annual billing applies a discount vs monthly. Enterprise is illustrative; actual quote depends on volume and features.' },
+  { label: 'Shopping Assistant CVR uplift', figure: '82% avg · 89% median (Beauty)', source: 'Gorgias internal ROI Estimator benchmark, Oct 2025 cut across Shopping Assistant-enabled merchants', note: 'Cohort comparison of SA-engaged vs non-engaged sessions. Verticals vary (Beauty 10.6% conv rate, Apparel 9.8%, Footwear 17.7x ROI).' },
+  { label: 'Shopping Assistant availability', figure: 'Included in AI Agent (USD-6) · no separate cost', source: 'Gorgias AI Agent USD-6 packaging — the Shopping Assistant skill is enabled by default on AI Agent', note: 'Shopping Assistant conversations are billed as ordinary AI Agent interactions; there is no separate Shopping Assistant line item.' },
+  { label: 'GMV-influenced attribution window', figure: '3 days post-conversation', source: 'Gorgias attribution model (2025-08-11 update)', note: 'The "Attribution confidence" slider further discounts this to model truly incremental orders.' },
+];
+
+function CombinedRoiMethodology({ st, compact = false, defaultOpen = false }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  return (
+    <div className="card" style={{ padding: compact ? 22 : 24, display: 'flex', flexDirection: 'column', gap: open ? 18 : 0 }}>
+      <button type="button" onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', color: V2.ink }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <h3 className="h3" style={{ fontSize: compact ? 18 : 22 }}>Methodology &amp; sources</h3>
+          <span className="muted" style={{ fontSize: 13 }}>Every assumption, every formula. Auditable.</span>
+        </div>
+        <span style={{ width: 32, height: 32, borderRadius: 999, border: `1px solid ${V2.line}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: V2.ink2, transition: 'transform .2s', transform: open ? 'rotate(180deg)' : 'rotate(0)' }}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </button>
+
+      {open && (
+        <React.Fragment>
+          <div style={{ background: '#FAFAFA', borderRadius: 14, padding: '18px 22px', border: `1px solid ${V2.line2}`, display: 'flex', flexDirection: 'column', gap: 10, fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace', fontSize: 12.5, color: V2.ink2, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: V2.ink3, letterSpacing: '.08em', textTransform: 'uppercase', fontFamily: V2.font, marginBottom: 4 }}>Cost-side formulas</div>
+            <div><span style={{ color: V2.ink3 }}>current_stack    =</span> agents × salary + tooling_spend × 12</div>
+            <div><span style={{ color: V2.ink3 }}>with_helpdesk    =</span> agents × salary × <strong style={{ color: V2.coralDeep }}>0.75</strong> + plan_annual</div>
+            <div><span style={{ color: V2.ink3 }}>auto_resolved    =</span> tickets × ai_rate%</div>
+            <div><span style={{ color: V2.ink3 }}>human_share      =</span> (tickets − auto_resolved) / tickets</div>
+            <div><span style={{ color: V2.ink3 }}>with_helpdesk_ai =</span> agents × salary × 0.75 × human_share + plan_annual + auto_resolved × ai_$/interaction × 12</div>
+            <div style={{ paddingTop: 4 }}><span style={{ color: V2.ink3 }}>cost_savings     =</span> current_stack − chosen_scenario</div>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: V2.green, letterSpacing: '.08em', textTransform: 'uppercase', fontFamily: V2.font, marginTop: 12, marginBottom: 4 }}>Revenue-side formulas (Shopping Assistant — included in AI Agent)</div>
+            <div><span style={{ color: V2.ink3 }}>sa_conversations =</span> traffic × presales% × chat_contact%</div>
+            <div><span style={{ color: V2.ink3 }}>incremental_orders=</span> sa_conversations × baseline_cvr% × uplift% × attribution%</div>
+            <div><span style={{ color: V2.ink3 }}>sa_revenue       =</span> incremental_orders × AOV × 12</div>
+            <div style={{ paddingTop: 4 }}><span style={{ color: V2.ink3 }}>total_value      =</span> cost_savings + sa_revenue</div>
+          </div>
+
+          <div style={{ background: '#FBFAF8', border: `1px solid ${V2.line}`, borderRadius: 10, padding: '14px 18px', display: 'flex', gap: 12, fontSize: 12, color: V2.ink2, lineHeight: 1.55 }}>
+            <div style={{ fontSize: 14, lineHeight: 1, color: '#E0A93B', fontWeight: 700, flexShrink: 0 }}>!</div>
+            <div>
+              <strong style={{ color: V2.ink, fontWeight: 600 }}>Shopping Assistant uplift benchmarks are directional, not yet causally proven.</strong>
+              {' '}The 45–82% lift figures come from cohort comparisons of Shopping Assistant-engaged vs non-engaged sessions and have not been validated by a randomized holdout. Use 40% (Conservative) for CFO-grade modeling.
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: V2.ink3, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>Sources</div>
+            {COMBINED_SOURCES.map((src, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '180px 1fr', gap: compact ? 4 : 16, padding: '12px 0', borderBottom: i < COMBINED_SOURCES.length - 1 ? `1px solid ${V2.line2}` : 'none', alignItems: 'start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: V2.ink }}>{src.label}</span>
+                  <span style={{ fontSize: 11.5, color: V2.coralDeep, fontWeight: 500 }}>{src.figure}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ fontSize: 12, color: V2.ink2, lineHeight: 1.5 }}>{src.source}</span>
+                  <span style={{ fontSize: 11.5, color: V2.ink3, lineHeight: 1.5 }}>{src.note}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+// ─── CombinedRoiFocusedPage ──────────────────────────────────────────────────
+// No nav, hero, email capture, CTA, or footer — just the calculator itself.
+function CombinedRoiFocusedPage() {
+  const st = useCombinedRoi();
+  return (
+    <div className="v2" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#FBFAF8' }}>
+      <div style={{ width: '100%', maxWidth: 1080, margin: '0 auto', boxSizing: 'border-box', padding: '40px 40px 56px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 16, alignItems: 'start' }}>
+          <CombinedRoiInputs st={st} />
+          <div style={{ position: 'sticky', top: 20 }}>
+            <CombinedRoiResults st={st} />
+          </div>
+        </div>
+        <CombinedRoiBreakdown st={st} />
+        <CombinedRoiChart st={st} />
+        <CombinedRoiMethodology st={st} />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<CombinedRoiFocusedPage />);
+</script>
+</body>
+</html>
