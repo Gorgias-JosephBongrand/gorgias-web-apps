@@ -64,7 +64,7 @@ const css = `
   /* Layout */
   .v2-roi-wrap { width: 100%; display: flex; flex-direction: column; gap: 16px; }
   .v2-roi-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: start; }
-  .v2-roi-sticky { position: sticky; top: 20px; }
+  .v2-roi-sticky { position: sticky; top: 8rem; }
 
   /* Responsive */
   @media (max-width: 840px) {
